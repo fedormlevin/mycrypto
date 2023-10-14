@@ -48,7 +48,7 @@ def on_open(ws):
 
 def run_websocket():
     # The Binance WebSocket endpoint for the streams
-    endpoint = "wss://stream.binance.us:9443/ws/btcusdt@trade"
+    endpoint = "wss://stream.binance.us:9443/ws"
 
     ws = websocket.WebSocketApp(
         endpoint, on_message=on_message, on_error=on_error, on_close=on_close
