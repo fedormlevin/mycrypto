@@ -1,21 +1,33 @@
 import websocket
 import json
 import zmq
+import time
 
 # ZeroMQ setup
 context = zmq.Context()
-publisher = context.socket(zmq.PUB)
+#publisher = context.socket(zmq.PUB)
+publisher = context.socket(zmq.PUSH)
 publisher.bind("tcp://*:5555")  # Publisher listens on all interfaces at port 5555
 
 # This function will handle incoming messages from the WebSocket.
 def on_message(ws, message):
+    
     data = json.loads(message)
-    print(data)
+    # print(data)
 
     # Publish the received data via ZeroMQ
     #msg = f"Message {data}"  # Format or adapt the data as needed
     msg = json.dumps(data)
-    publisher.send_string(msg)
+    # Timestamp the message
+    timestamped_data = {
+        'timestamp': time.time(),
+        'data': msg
+    }
+    print(timestamped_data)
+    #publisher.send_string(msg)
+    serialized_data = json.dumps(timestamped_data)
+    
+    publisher.send_string(serialized_data)
 
 def on_error(ws, error):
     print(f"Error: {error}")
