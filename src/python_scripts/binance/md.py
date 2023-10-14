@@ -11,18 +11,21 @@ DF_LIST = []
 
 # This function will handle incoming messages from the WebSocket.
 def on_message(ws, message):
+    n_records = 200
+
     data = json.loads(message)
     data_df = pd.DataFrame(data)
     DF_LIST.append(data_df)
-    if len(DF_LIST) == 5:
-        print("Recorded 5")
+    print(f'N records: {len(DF_LIST)}')
 
-    if len(DF_LIST) > 20:
+    if len(DF_LIST) > n_records:
         df = pd.concat(DF_LIST)
         df.to_csv(
             "/Users/fedorlevin/workspace/data/binance/binance_traiding_pairs.csv",
             index=False,
         )
+        print(f'loaded {n_records} records')
+        sys.exit(0)
 
 
 def on_error(ws, error):
