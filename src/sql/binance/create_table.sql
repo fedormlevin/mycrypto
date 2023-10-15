@@ -1,6 +1,5 @@
 CREATE TABLE binance_symbol_ticker_stream
 (
-    date DateTime,
     event_type String,
     event_time UInt64,
     symbol String,
@@ -21,8 +20,9 @@ CREATE TABLE binance_symbol_ticker_stream
     total_traded_quote_asset_volume Float64,
     statistics_open_time UInt64,
     statistics_close_time UInt64,
-    first_trade_id UInt64,
-    last_trade_id UInt64,
-    total_number_of_trades UInt64
+    first_trade_id Int64,
+    last_trade_id Int64,
+    total_number_of_trades UInt64,
+    date Date
 ) ENGINE = MergeTree()
 ORDER BY (event_time, symbol);
