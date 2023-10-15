@@ -1,5 +1,6 @@
 CREATE TABLE binance_symbol_ticker_stream
 (
+    date DateTime,
     event_type String,
     event_time UInt64,
     symbol String,
