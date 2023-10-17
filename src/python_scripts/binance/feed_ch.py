@@ -16,16 +16,7 @@ logging.basicConfig(
 DF_LIST = []
 
 
-with open(
-    "/Users/fedorlevin/workspace/data/binance/refdata/binance_symbol_ticker_stream_colnames.json",
-    "r",
-) as f:
-    COL_ = json.load(f)
-
-client = Client("localhost")  # Assuming ClickHouse is running on localhost
-
-
-def on_message(ws, message, tbl, tbl_cols, batch_size):
+def on_message(ws, message, client, tbl, orig_schema, batch_size):
     global DF_LIST
 
     data_list = json.loads(message)
@@ -35,6 +26,9 @@ def on_message(ws, message, tbl, tbl_cols, batch_size):
             logging.info("Successfully subscribed to Binance!")
             return
 
+    if isinstance(data_list, dict):
+        data_list = [data_list]
+
     df_ = pd.DataFrame(data_list)
     DF_LIST.append(df_)
 
@@ -43,13 +37,20 @@ def on_message(ws, message, tbl, tbl_cols, batch_size):
         logging.info(f"Dumping batch of {len(DF_LIST)}")
 
         df = pd.concat(DF_LIST)
-        df = df[tbl_cols]
-
-        df["date"] = datetime.now().date()
+        df = df[orig_schema]
 
         df = df.apply(pd.to_numeric, errors="ignore")
 
+        df["date"] = datetime.now().date()
+
+        now_utc = datetime.utcnow()
+        epoch = datetime.utcfromtimestamp(0)
+        microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
+        df["insert_time"] = int(microseconds_since_epoch)
+
         client.execute(f"INSERT INTO {tbl} VALUES", df.values.tolist())
+
+        # client.insert_dataframe(query=f"INSERT INTO {tbl} VALUES", dataframe=df)
         DF_LIST = []  # Clear the buffer
 
 
@@ -71,37 +72,36 @@ def on_open(ws, method, subscriptions):
     ws.send(json.dumps(payload))
 
 
-def run_websocket(tbl, tbl_cols, subscriptions, endpoint, batch_size):
+def run_websocket(client, tbl, orig_schema, subscriptions, endpoint, batch_size):
     ws = websocket.WebSocketApp(
         endpoint,
         on_message=partial(
             on_message,
+            client=client,
             tbl=tbl,
-            tbl_cols=tbl_cols,
+            orig_schema=orig_schema,
             batch_size=batch_size,
         ),
         on_error=on_error,
         on_close=on_close,
     )
-    ws.on_open = partial(
-        on_open, method="SUBSCRIBE", subscriptions=[f"{subscriptions}"]
-    )
+    ws.on_open = partial(on_open, method="SUBSCRIBE", subscriptions=subscriptions)
     ws.run_forever()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Push binance data to Clickhouse")
     parser.add_argument("--table", type=str, default="binance_symbol_ticker_stream")
-    parser.add_argument("-s", "--subscription", type=str, default="!ticker@arr")
+
     parser.add_argument(
         "--endpoint", type=str, default="wss://stream.binance.us:9443/ws"
     )
-    parser.add_argument("-b", "--batch-size", type=int, default=20)
+    parser.add_argument("-b", "--batch-size", type=int, default=5)
 
     logging.info("Starting script")
     args = parser.parse_args()
     tbl = args.table
-    subscriptions = args.subscription
+
     endpoint = args.endpoint
     batch_size = args.batch_size
 
@@ -109,15 +109,20 @@ if __name__ == "__main__":
     params_df = params_df[params_df["table_name"] == tbl]
 
     sub_id = params_df["subscription_id"].values[0]
+    sub_id_list = result = [s.strip() for s in sub_id.split(",")]
+
     col_names_dir = params_df["colnames_json"].values[0]
     with open(col_names_dir, "r") as f:
-        col_names = json.load(f)
+        orig_schema = json.load(f)
+
+    client = Client("localhost")
 
     try:
         run_websocket(
+            client=client,
             tbl=tbl,
-            tbl_cols=col_names.keys(),
-            subscriptions=subscriptions,
+            orig_schema=orig_schema.keys(),
+            subscriptions=sub_id_list,
             endpoint=endpoint,
             batch_size=batch_size,
         )

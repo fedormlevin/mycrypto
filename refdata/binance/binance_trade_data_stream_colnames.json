@@ -1,0 +1,13 @@
+{
+    "e": "event_type",
+    "E": "event_time",
+    "s": "symbol",
+    "t": "trade_id",
+    "p": "price",
+    "q": "quantity",
+    "b": "buyer_order_id",
+    "a": "seller_order_id",
+    "T": "trade_time",
+    "m": "market_maker",
+    "M": "ignore"
+}
