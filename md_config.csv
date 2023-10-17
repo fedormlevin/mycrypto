@@ -1,0 +1,2 @@
+table_name,subscription_id,colnames_json
+binance_symbol_ticker_stream,!ticker@arr,/Users/fedorlevin/workspace/mycrypto/refdata/binance/binance_symbol_ticker_stream_colnames.json
