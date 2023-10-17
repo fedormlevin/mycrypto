@@ -123,6 +123,7 @@ if __name__ == "__main__":
     sub_id_list = result = [s.strip() for s in sub_id.split(",")]
 
     col_names_dir = params_df["colnames_json"].values[0]
+    col_names_dir = os.path.expanduser(col_names_dir)
     with open(col_names_dir, "r") as f:
         orig_schema = json.load(f)
 

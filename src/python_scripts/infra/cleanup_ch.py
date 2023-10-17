@@ -20,7 +20,7 @@ logging.basicConfig(filename=log_filename,
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Push binance data to Clickhouse")
+    parser = argparse.ArgumentParser(description="Clean Clickhouse from old history")
     parser.add_argument("-d", "--days", type=int, default=5)
 
     args = parser.parse_args()
