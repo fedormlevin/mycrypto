@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import json
 import websocket
 import pandas as pd
@@ -6,6 +8,15 @@ from datetime import datetime
 import logging
 from functools import partial
 import argparse
+import os
+
+# Ensure the LOG directory exists
+if not os.path.exists("LOG"):
+    os.makedirs("LOG")
+
+# Get the current date and time to format the log filename
+current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+log_filename = f"LOG/feed_ch_{current_time}.log"
 
 # Setting up the logger
 logging.basicConfig(
@@ -41,9 +52,9 @@ def on_message(ws, message, client, tbl, orig_schema, batch_size):
 
         df = df.apply(pd.to_numeric, errors="ignore")
 
-        df["date"] = datetime.now().date()
-
         now_utc = datetime.utcnow()
+        df["date"] = now_utc.date()
+
         epoch = datetime.utcfromtimestamp(0)
         microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
         df["insert_time"] = int(microseconds_since_epoch)
