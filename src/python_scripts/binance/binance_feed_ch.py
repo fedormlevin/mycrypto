@@ -11,16 +11,18 @@ import argparse
 import os
 
 # Ensure the LOG directory exists
-if not os.path.exists("LOG"):
-    os.makedirs("LOG")
+log_dir = os.path.expanduser("~/workspace/LOG")
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
 # Get the current date and time to format the log filename
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_filename = f"LOG/feed_ch_{current_time}.log"
+log_filename = f"{log_dir}/binance_feed_ch_{current_time}.log"
 
-# Setting up the logger
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    filename=log_filename,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
