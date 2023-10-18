@@ -24,7 +24,7 @@ CREATE TABLE binance_symbol_ticker_stream
     last_trade_id Int64,
     total_number_of_trades UInt64,
     date Date,
-    insert_time DateTime
+    insert_time UInt64
 ) ENGINE = MergeTree()
 ORDER BY (event_time, symbol);
 
@@ -42,7 +42,7 @@ CREATE TABLE binance_trade_data_stream
     market_maker String,
     ignore String,
     date Date,
-    insert_time DateTime
+    insert_time UInt64
 ) ENGINE = MergeTree()
 ORDER BY (event_time, symbol);
 
@@ -55,6 +55,6 @@ CREATE TABLE binance_ticker_order_book_stream
     best_ask_price Float64,
     best_ask_qty Float64,
     date Date,
-    insert_time DateTime
+    insert_time UInt64
 ) ENGINE = MergeTree()
 ORDER BY (order_book_updateid, symbol);

@@ -51,9 +51,30 @@ def subscribe_to_products(products, channel_name, ws):
     subscribe_msg = timestamp_and_sign(message, channel_name, products)
     ws.send(json.dumps(subscribe_msg))
 
-
+DF_LIST = []
+client = Client("localhost")
 def on_message(ws, message):
+    global DF_LIST
     print(message)
+    df_ = parse_market_trades_msg(message)
+
+    DF_LIST.append(df_)
+
+    # If we've collected enough rows, insert the batch
+    if len(DF_LIST) >= 100:
+        logging.info(f"Dumping batch of {len(DF_LIST)}")
+
+        df = pd.concat(DF_LIST)
+
+        now_utc = datetime.utcnow()
+        df["date"] = now_utc.date()
+
+        epoch = datetime.utcfromtimestamp(0)
+        microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
+        df["insert_time"] = int(microseconds_since_epoch)
+
+        client.execute(f"INSERT INTO coinbase_market_trades_stream VALUES", df.values.tolist())
+        DF_LIST = []
 
 
 def on_error(ws, error):
@@ -81,6 +102,24 @@ def run_websocket(endpoint):
     )
     # ws.on_open = partial(on_open, method="SUBSCRIBE", subscriptions=subscriptions)
     ws.run_forever()
+
+
+def parse_market_trades_msg(msg):
+    message = json.loads(msg)
+    if message['channel']=='market_trades':
+        trades_df = pd.DataFrame(message["events"][0]["trades"])
+
+        trades_df["channel"] = message["channel"]
+        trades_df["client_id"] = message["client_id"]
+        trades_df["timestamp"] = message["timestamp"]
+        trades_df["sequence_num"] = message["sequence_num"]
+
+        for col in ['time', 'timestamp']:
+            trades_df[col] = pd.to_datetime(trades_df[col])
+        trades_df = trades_df.apply(pd.to_numeric, errors='ignore')
+
+        trades_df = trades_df.drop(columns='client_id')
+        return trades_df
 
 
 if __name__ == "__main__":
