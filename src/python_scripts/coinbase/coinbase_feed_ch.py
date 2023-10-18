@@ -33,7 +33,7 @@ def sign(str_to_sign, secret):
 
 
 def timestamp_and_sign(message, channel, products=[]):
-    api_secret = os.environ["coinbase_api_secret"].strip()
+    api_secret = os.environ["coinbase_api_secret"]
     timestamp = str(int(time.time()))
     str_to_sign = f"{timestamp}{channel}{''.join(products)}"
     sig = sign(str_to_sign, api_secret)
@@ -55,10 +55,12 @@ DF_LIST = []
 client = Client("localhost")
 def on_message(ws, message):
     global DF_LIST
-    print(message)
     df_ = parse_market_trades_msg(message)
 
     DF_LIST.append(df_)
+
+    if len(DF_LIST)==1:
+        print('Received 1st record')
 
     # If we've collected enough rows, insert the batch
     if len(DF_LIST) >= 100:
@@ -82,7 +84,6 @@ def on_error(ws, error):
 
 
 def on_open(ws):
-    ws.start_time = time.time()
     ws.sent_unsub = False
     products = ["BTC-USD"]
     subscribe_to_products(products, "market_trades", ws)
