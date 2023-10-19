@@ -1,0 +1,2 @@
+table_name,channel,product_ids
+coinbase_market_trades_stream,market_trades,BTC-USD

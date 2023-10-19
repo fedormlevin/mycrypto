@@ -11,6 +11,7 @@ import argparse
 import hmac
 import hashlib
 import time
+from functools import partial
 
 # Ensure the LOG directory exists
 log_dir = os.path.expanduser("~/workspace/LOG")
@@ -83,10 +84,9 @@ def on_error(ws, error):
     print(f"Error: {error}")
 
 
-def on_open(ws):
+def on_open(ws, product_ids):
     ws.sent_unsub = False
-    products = ["BTC-USD"]
-    subscribe_to_products(products, "market_trades", ws)
+    subscribe_to_products(product_ids, "market_trades", ws)
 
 
 def on_close(ws, close_status_code, close_msg):
@@ -96,7 +96,7 @@ def on_close(ws, close_status_code, close_msg):
 def run_websocket(endpoint):
     ws = websocket.WebSocketApp(
         endpoint,
-        on_open=on_open,
+        on_open=partial(on_open, product_ids=product_ids),
         on_message=on_message,
         on_error=on_error,
         on_close=on_close,
@@ -125,6 +125,22 @@ def parse_market_trades_msg(msg):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Push coinbase data to Clickhouse")
-    parser.add_argument("--table", type=str, default="binance_symbol_ticker_stream")
+    parser.add_argument("--table", type=str, default="coinbase_market_trades_stream")
+    parser.add_argument(
+        "--endpoint", type=str, default="wss://advanced-trade-ws.coinbase.com"
+    )
+    parser.add_argument("-b", "--batch-size", type=int, default=5)
 
-    run_websocket('wss://advanced-trade-ws.coinbase.com')
+    logging.info("Starting script")
+    args = parser.parse_args()
+    tbl = args.table
+
+    endpoint = args.endpoint
+
+    params_df = pd.read_csv("/Users/fedorlevin/workspace/mycrypto/coinbase_md_config.csv")
+    params_df = params_df[params_df["table_name"] == tbl]
+    channel = params_df["channel"].values[0]
+    product_ids = params_df["product_ids"].values[0]
+    product_ids_list = result = [s.strip() for s in product_ids.split(",")]
+
+    run_websocket(endpoint=endpoint)
