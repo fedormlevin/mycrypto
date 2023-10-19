@@ -21,6 +21,7 @@ class WebSocketClient:
 
     def on_message(self, ws, message):
         # print(message)
+       
         if len(self.DF_LIST) >= self.batch_size:
             logging.info(f"Dumping batch of {len(self.DF_LIST)}")
             df = pd.concat(self.DF_LIST)
