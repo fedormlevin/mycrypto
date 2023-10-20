@@ -1,0 +1,2 @@
+table_name,symbols,heartbeat,top_of_book,bids,offers,trades
+gemini_multimarketdata_trades,"BTCUSD,ETHUSD",true,false,false,false,true
