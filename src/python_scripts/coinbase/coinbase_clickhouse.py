@@ -87,6 +87,11 @@ if __name__ == "__main__":
     product_ids = params_df["product_ids"].values[0]
     product_ids_list = result = [s.strip() for s in product_ids.split(",")]
 
+    col_names_dir = params_df["colnames_json"].values[0]
+    col_names_dir = os.path.expanduser(col_names_dir)
+    with open(col_names_dir, "r") as f:
+        orig_schema = json.load(f)
+
     message = {
         "type": "subscribe",
         "channel": channel,
@@ -96,6 +101,7 @@ if __name__ == "__main__":
     payload = timestamp_and_sign(message, channel, product_ids_list)
 
     client = CoinbaseWebsocketClient(
-        endpoint=endpoint, payload=payload, ch_table=tbl, batch_size=batch
+        endpoint=endpoint, payload=payload, ch_table=tbl, 
+        ch_schema=orig_schema.keys(), batch_size=batch
     )
     client.run()

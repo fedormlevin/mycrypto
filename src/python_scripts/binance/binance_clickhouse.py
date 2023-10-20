@@ -28,12 +28,6 @@ logging.basicConfig(
 
 
 class BinanceWebsocketClient(WebSocketClient):
-    def __init__(self, endpoint, payload, ch_table, batch_size, orig_schema):
-        super().__init__(endpoint, payload, ch_table, batch_size)
-        self.orig_schema = orig_schema
-        
-        
-
     def on_message(self, ws, message):
         data_list = json.loads(message)
 
@@ -46,11 +40,7 @@ class BinanceWebsocketClient(WebSocketClient):
             data_list = [data_list]
     
         df_ = pd.DataFrame(data_list)
-    
-        df_ = df_[self.orig_schema]
-  
         self.DF_LIST.append(df_)
-
         return super().on_message(ws, message)
 
 
@@ -92,7 +82,7 @@ if __name__ == "__main__":
         endpoint=endpoint,
         payload=payload,
         ch_table=tbl,
+        ch_schema=orig_schema.keys(),
         batch_size=batch_size,
-        orig_schema=orig_schema.keys(),
     )
     client.run()

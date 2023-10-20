@@ -12,12 +12,12 @@ import os
 class WebSocketClient:
     DF_LIST = []
 
-    def __init__(self, endpoint, payload, ch_table, batch_size, **kwargs):
+    def __init__(self, endpoint, payload, ch_table, ch_schema, batch_size):
         self.endpoint = endpoint
         self.payload = payload
         self.ch_table = ch_table
+        self.ch_schema = ch_schema
         self.batch_size = batch_size
-        self.kwargs = kwargs
 
     def on_message(self, ws, message):
         # print(message)
@@ -25,12 +25,13 @@ class WebSocketClient:
         if len(self.DF_LIST) >= self.batch_size:
             logging.info(f"Dumping batch of {len(self.DF_LIST)}")
             df = pd.concat(self.DF_LIST)
-            self.flush_to_ch(df, self.ch_table)
+            self.flush_to_ch(df, self.ch_table, self.ch_schema)
 
-    def flush_to_ch(self, df, ch_table):
+    def flush_to_ch(self, df, ch_table, ch_schema):
         client = Client("localhost")
 
         df = df.apply(pd.to_numeric, errors="ignore")
+        df = df[ch_schema]
 
         now_utc = datetime.utcnow()
         df["date"] = now_utc.date()
