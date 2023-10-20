@@ -30,17 +30,21 @@ logging.basicConfig(
 class GeminiWebsocketClient(WebSocketClient):
     def on_message(self, ws, message):
         df_ = parse_market_trades_msg(message)
-        self.DF_LIST.append(df_)
+        if not df_.empty:
+            self.DF_LIST.append(df_)
         return super().on_message(ws, message)
     
-    def run(self):
-        ws = websocket.WebSocketApp(
-            self.endpoint,
-            on_message=self.on_message,
-            on_error=self.on_error,
-            on_close=self.on_close
-        )
-        ws.run_forever()
+    def on_open(self, ws):  # don't do anything
+        return
+
+
+def build_endpoint(endpoint, symbols, heartbeat='true', 
+                   top_of_book='false', bids='false', offers='false', trades='true'):
+    
+    base_url = f"{endpoint}?symbols={symbols}?heartbeat={heartbeat}"\
+               f"&top_of_book={top_of_book}&bids={bids}&offers={offers}&trades={trades}"
+    
+    return base_url
 
 def parse_market_trades_msg(msg):
     message = json.loads(msg)
@@ -52,17 +56,18 @@ def parse_market_trades_msg(msg):
           trades_df["socket_sequence"] = message["socket_sequence"]
           trades_df["timestamp"] = message["timestamp"]
           trades_df["timestampms"] = message["timestampms"]
-          trades_df["type"] = message["type"]
 
           return trades_df
+    else:
+        return pd.DataFrame()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Push gemini data to Clickhouse")
-    parser.add_argument("--table", type=str, default="gemini_market_trades_stream")
+    parser.add_argument("--table", type=str, default="gemini_multimarketdata_trades")
     parser.add_argument(
-        "--endpoint", type=str, default="wss://api.gemini.com/v1/multimarketdata/"
+        "--endpoint", type=str, default="wss://api.gemini.com/v1/multimarketdata"
     )
-    parser.add_argument("-b", "--batch-size", type=int, default=10)
+    parser.add_argument("-b", "--batch-size", type=int, default=1)
 
     logging.info("Starting script")
     args = parser.parse_args()
@@ -75,10 +80,23 @@ if __name__ == "__main__":
         "/Users/fedorlevin/workspace/mycrypto/gemini_md_config.csv"
     )
     params_df = params_df[params_df["table_name"] == tbl]
-
+    
     symbols = params_df['symbols'].values[0]
     heartbeat = params_df['heartbeat'].values[0]
     top_of_book = params_df['top_of_book'].values[0]
     bids = params_df['bids'].values[0]
     offers = params_df['offers'].values[0]
     trades = params_df['trades'].values[0]
+
+    col_names_dir = params_df["colnames_json"].values[0]
+    col_names_dir = os.path.expanduser(col_names_dir)
+    with open(col_names_dir, "r") as f:
+        orig_schema = json.load(f)
+
+    endpoint = build_endpoint(endpoint, symbols)
+
+    client = GeminiWebsocketClient(
+        endpoint=endpoint, payload='', ch_table=tbl, 
+        ch_schema=orig_schema.keys(), batch_size=batch
+    )
+    client.run()
