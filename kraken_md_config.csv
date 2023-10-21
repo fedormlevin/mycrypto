@@ -1,0 +1,3 @@
+table_name,pair,subscription,colnames_json
+kraken_trade_data_stream,XBT/USD,trade,~/workspace/mycrypto/refdata/kraken/kraken_trades_colnames.json
+kraken_ticker_stream,XBT/USD,ticker,~/workspace/mycrypto/refdata/kraken/kraken_ticker_colnames.json

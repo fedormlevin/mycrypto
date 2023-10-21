@@ -67,7 +67,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--endpoint", type=str, default="wss://api.gemini.com/v1/multimarketdata"
     )
-    parser.add_argument("-b", "--batch-size", type=int, default=1)
+    parser.add_argument("-b", "--batch-size", type=int, default=3)
 
     logging.info("Starting script")
     args = parser.parse_args()

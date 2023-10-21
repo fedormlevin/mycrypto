@@ -23,7 +23,7 @@ class WebSocketClient:
         # print(message)
        
         if len(self.DF_LIST) >= self.batch_size:
-            logging.info(f"Dumping batch of {len(self.DF_LIST)}")
+            
             df = pd.concat(self.DF_LIST)
             self.flush_to_ch(df, self.ch_table, self.ch_schema)
 
@@ -40,14 +40,15 @@ class WebSocketClient:
         microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
         df["insert_time"] = int(microseconds_since_epoch)
 
+        logging.info(f"Dumping batch of {len(self.DF_LIST)}")
         client.execute(f"INSERT INTO {ch_table} VALUES", df.values.tolist())
         self.DF_LIST = []
 
     def on_error(self, ws, error):
-        print(f"Error: {error}")
+        logging.error(f"Error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        print(f"### closed {close_status_code} {close_msg} ###")
+        logging.info(f"### closed {close_status_code} {close_msg} ###")
 
     def on_open(self, ws):
         ws.send(json.dumps(self.payload))
