@@ -39,3 +39,21 @@ CREATE TABLE kraken_ticker_stream
     insert_time UInt64
 ) ENGINE = MergeTree()
 ORDER BY ticker;
+
+CREATE TABLE kraken_ohlc_stream
+(
+    time Float64,
+    etime Float64,
+    open Float64,
+    high Float64,
+    low Float64,
+    close Float64,
+    vwap Float64,
+    volume Float64,
+    count Int64,
+    channelName String,
+    pair String,
+    date Date,
+    insert_time UInt64
+) ENGINE = MergeTree()
+ORDER BY (time, pair);
