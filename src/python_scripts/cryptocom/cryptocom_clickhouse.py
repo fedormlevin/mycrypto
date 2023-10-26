@@ -23,45 +23,20 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
-
-class KrakenWebsocketClient(WebSocketClient):
+class CryptocomWebsocketClient(WebSocketClient):
     def on_message(self, ws, message):
-        data = json.loads(message)
-
-        if isinstance(data, dict):
-            if data.get("status") == "online":
-                logging.info("Status online")
-                return
-        if isinstance(data, list):
-            df_ = parse_market_trades_msg(data, self.ch_table)
+        data_dict = json.loads(message)
+        if data_dict.get('result').get('channel')=='trade':
+            df_ = pd.DataFrame(data_dict['result']['data'])
             self.DF_LIST.append(df_)
-
-        return super().on_message(ws, message)
-
-
-def parse_market_trades_msg(lst, tbl):
-    if tbl == "kraken_trade_data_stream":
-        df = pd.DataFrame(
-            lst[1], columns=["price", "volume", "time", "side", "orderType", "misc"]
-        )
-# check if lst[1] is list or list of list
-        df = df.drop(columns="misc")
-    elif tbl == "kraken_ohlc_stream":
-
-        df = pd.DataFrame(
-            [lst[1]], columns=["time", "etime", "open", "high", "low", "close", 'vwap', 'volume', 'count']
-        )
-
-    df["channelName"] = lst[2]
-    df["pair"] = lst[3]
-    
-    return df
-
+            return super().on_message(ws, message)
+        else:
+            return
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Push binance data to Clickhouse")
-    parser.add_argument("--table", type=str, default="kraken_trade_data_stream")
-    parser.add_argument("--endpoint", type=str, default="wss://ws.kraken.com")
+    parser = argparse.ArgumentParser(description="Push cryptocom data to Clickhouse")
+    parser.add_argument("--table", type=str, default="cryptocom_trade_data_stream")
+    parser.add_argument("--endpoint", type=str, default="wss://stream.crypto.com/exchange/v1/market")
     parser.add_argument("-b", "--batch-size", type=int, default=2)
 
 
@@ -72,13 +47,13 @@ if __name__ == "__main__":
     endpoint = args.endpoint
     batch_size = args.batch_size
 
-    params_df = pd.read_csv("/Users/fedorlevin/workspace/mycrypto/kraken_md_config.csv")
+    params_df = pd.read_csv("/Users/fedorlevin/workspace/mycrypto/cryptocom_md_config.csv")
     params_df = params_df[params_df["table_name"] == tbl]
 
     pair = params_df["pair"].values[0]
     pair_list = result = [s.strip() for s in pair.split(",")]
 
-    subscription = params_df["subscription"].values[0]
+    channel = params_df["channel"].values[0]
 
     col_names_dir = params_df["colnames_json"].values[0]
     col_names_dir = os.path.expanduser(col_names_dir)
@@ -86,12 +61,12 @@ if __name__ == "__main__":
         orig_schema = json.load(f)
 
     payload = {
-        "event": "subscribe",
-        "pair": pair_list,
-        "subscription": {"name": subscription},
+        'id': 1,
+        "method": "subscribe",
+        "params": [f'{channel}.{pair}']  # this needs to be changed
     }
 
-    client = KrakenWebsocketClient(
+    client = CryptocomWebsocketClient(
         endpoint=endpoint,
         payload=payload,
         ch_table=tbl,

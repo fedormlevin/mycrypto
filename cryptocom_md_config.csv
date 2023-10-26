@@ -1,0 +1,2 @@
+table_name,pair,channel,colnames_json
+cryptocom_trade_data_stream,BTCUSD-PERP,trade,~/workspace/mycrypto/refdata/cryptocom/cryptocom_trades_colnames.json
