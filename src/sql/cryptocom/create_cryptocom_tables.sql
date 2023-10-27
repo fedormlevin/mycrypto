@@ -1,10 +1,10 @@
-CREATE TABLE cryptocom_market_trades_stream
+CREATE TABLE cryptocom_trade_data_stream
 (
-    trade_id UInt64,
-    trade_timestmp UInt64,
+    side String,
     trade_price Float64,
     trade_qty Float64,
-    side String,
+    trade_timestmp UInt64,
+    trade_id UInt64,
     symbol String,
     date Date,
     insert_time UInt64

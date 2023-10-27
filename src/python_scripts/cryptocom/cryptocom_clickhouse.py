@@ -26,10 +26,20 @@ logging.basicConfig(
 class CryptocomWebsocketClient(WebSocketClient):
     def on_message(self, ws, message):
         data_dict = json.loads(message)
-        if data_dict.get('result').get('channel')=='trade':
-            df_ = pd.DataFrame(data_dict['result']['data'])
-            self.DF_LIST.append(df_)
-            return super().on_message(ws, message)
+        if "method" in data_dict and data_dict["method"] == "public/heartbeat":
+            # Respond to the heartbeat
+            response = {
+                "id": data_dict["id"],
+                "method": "public/respond-heartbeat",
+            }
+            ws.send(json.dumps(response))
+            print("Responded to heartbeat.")
+        
+        if data_dict.get('result'):
+            if data_dict.get('result').get('channel')=='trade':
+                df_ = pd.DataFrame(data_dict['result']['data'])
+                self.DF_LIST.append(df_)
+                return super().on_message(ws, message)
         else:
             return
 
@@ -37,7 +47,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Push cryptocom data to Clickhouse")
     parser.add_argument("--table", type=str, default="cryptocom_trade_data_stream")
     parser.add_argument("--endpoint", type=str, default="wss://stream.crypto.com/exchange/v1/market")
-    parser.add_argument("-b", "--batch-size", type=int, default=2)
+    parser.add_argument("-b", "--batch-size", type=int, default=7)
 
 
     logging.info("Starting script")
@@ -63,7 +73,9 @@ if __name__ == "__main__":
     payload = {
         'id': 1,
         "method": "subscribe",
-        "params": [f'{channel}.{pair}']  # this needs to be changed
+        "params": {
+            'channels': [f'{channel}.{pair}']  # this needs to be changed
+        }
     }
 
     client = CryptocomWebsocketClient(
