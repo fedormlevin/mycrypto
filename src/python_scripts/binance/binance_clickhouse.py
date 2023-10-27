@@ -12,7 +12,6 @@ from packages import setup_logging
 import pandas as pd
 import json
 
-setup_logging.setup_logging('binance')
 
 class BinanceWebsocketClient(WebSocketClient):
     def on_message(self, ws, message):
@@ -22,16 +21,16 @@ class BinanceWebsocketClient(WebSocketClient):
             if data_list["id"] == 1 and data_list["result"] is None:
                 logging.info("Successfully subscribed to Binance!")
                 return
-      
+
         if isinstance(data_list, dict):
             data_list = [data_list]
-    
+
         df_ = pd.DataFrame(data_list)
         self.DF_LIST.append(df_)
         return super().on_message(ws, message)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Push binance data to Clickhouse")
     parser.add_argument("--table", type=str, default="binance_symbol_ticker_stream")
     parser.add_argument(
@@ -39,8 +38,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("-b", "--batch-size", type=int, default=5)
 
-    logging.info("Starting script")
     args = parser.parse_args()
+    setup_logging.setup_logging("binance")
+    logging.info("Starting script")
+
     tbl = args.table
 
     endpoint = args.endpoint
@@ -73,3 +74,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
     )
     client.run()
+
+
+if __name__ == "__main__":
+    main()

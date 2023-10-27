@@ -2,11 +2,12 @@ import os
 import logging
 from datetime import datetime
 
+
 def setup_logging(log_name="default"):
     """
     Set up logging with a default log directory and naming convention based on the current time.
     """
-    
+
     # Ensure the LOG directory exists
     log_dir = os.path.expanduser("~/workspace/LOG")
     if not os.path.exists(log_dir):

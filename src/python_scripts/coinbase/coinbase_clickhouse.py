@@ -12,7 +12,6 @@ from packages import setup_logging
 import pandas as pd
 import json
 
-setup_logging.setup_logging('coinbase')
 
 def sign(str_to_sign, secret):
     return hmac.new(secret.encode(), str_to_sign.encode(), hashlib.sha256).hexdigest()
@@ -51,7 +50,7 @@ def parse_market_trades_msg(msg):
         return trades_df
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Push coinbase data to Clickhouse")
     parser.add_argument("--table", type=str, default="coinbase_market_trades_stream")
     parser.add_argument(
@@ -59,8 +58,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("-b", "--batch-size", type=int, default=10)
 
-    logging.info("Starting script")
     args = parser.parse_args()
+
+    setup_logging.setup_logging("coinbase")
+    logging.info("Starting script")
+
     tbl = args.table
     batch = args.batch_size
 
@@ -88,7 +90,14 @@ if __name__ == "__main__":
     payload = timestamp_and_sign(message, channel, product_ids_list)
 
     client = CoinbaseWebsocketClient(
-        endpoint=endpoint, payload=payload, ch_table=tbl, 
-        ch_schema=orig_schema.keys(), batch_size=batch
+        endpoint=endpoint,
+        payload=payload,
+        ch_table=tbl,
+        ch_schema=orig_schema.keys(),
+        batch_size=batch,
     )
     client.run()
+
+
+if __name__ == "__main__":
+    main()

@@ -21,9 +21,8 @@ class WebSocketClient:
 
     def on_message(self, ws, message):
         # print(message)
-       
+
         if len(self.DF_LIST) >= self.batch_size:
-            
             df = pd.concat(self.DF_LIST)
             self.flush_to_ch(df, self.ch_table, self.ch_schema)
 
@@ -62,5 +61,3 @@ class WebSocketClient:
             on_close=self.on_close,
         )
         ws.run_forever()
-
-

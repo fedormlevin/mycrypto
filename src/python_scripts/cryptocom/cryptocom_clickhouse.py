@@ -10,8 +10,6 @@ import pandas as pd
 import json
 
 
-setup_logging.setup_logging('cryptocom_trades')
-
 class CryptocomWebsocketClient(WebSocketClient):
     def on_message(self, ws, message):
         data_dict = json.loads(message)
@@ -23,30 +21,37 @@ class CryptocomWebsocketClient(WebSocketClient):
             }
             ws.send(json.dumps(response))
             logging.info("Responded to heartbeat")
-        
-        if data_dict.get('result'):
-            if data_dict.get('result').get('channel')=='trade':
-                df_ = pd.DataFrame(data_dict['result']['data'])
+
+        if data_dict.get("result"):
+            if data_dict.get("result").get("channel") == "trade":
+                df_ = pd.DataFrame(data_dict["result"]["data"])
                 self.DF_LIST.append(df_)
                 return super().on_message(ws, message)
         else:
             return
 
-if __name__ == "__main__":
+
+def main():
     parser = argparse.ArgumentParser(description="Push cryptocom data to Clickhouse")
     parser.add_argument("--table", type=str, default="cryptocom_trade_data_stream")
-    parser.add_argument("--endpoint", type=str, default="wss://stream.crypto.com/exchange/v1/market")
+    parser.add_argument(
+        "--endpoint", type=str, default="wss://stream.crypto.com/exchange/v1/market"
+    )
     parser.add_argument("-b", "--batch-size", type=int, default=7)
 
-
-    logging.info("Starting script")
     args = parser.parse_args()
+
+    setup_logging.setup_logging("cryptocom_trades")
+    logging.info("Starting script")
+
     tbl = args.table
 
     endpoint = args.endpoint
     batch_size = args.batch_size
 
-    params_df = pd.read_csv("/Users/fedorlevin/workspace/mycrypto/cryptocom_md_config.csv")
+    params_df = pd.read_csv(
+        "/Users/fedorlevin/workspace/mycrypto/cryptocom_md_config.csv"
+    )
     params_df = params_df[params_df["table_name"] == tbl]
 
     pair = params_df["pair"].values[0]
@@ -60,11 +65,9 @@ if __name__ == "__main__":
         orig_schema = json.load(f)
 
     payload = {
-        'id': 1,
+        "id": 1,
         "method": "subscribe",
-        "params": {
-            'channels': [f'{channel}.{pair}']  # this needs to be changed
-        }
+        "params": {"channels": [f"{channel}.{pair}"]},  # this needs to be changed
     }
 
     client = CryptocomWebsocketClient(
@@ -75,3 +78,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
     )
     client.run()
+
+
+if __name__ == "__main__":
+    main()

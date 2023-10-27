@@ -9,8 +9,6 @@ import pandas as pd
 import json
 from packages import setup_logging
 
-setup_logging.setup_logging('kraken')
-
 
 class KrakenWebsocketClient(WebSocketClient):
     def on_message(self, ws, message):
@@ -32,29 +30,41 @@ def parse_market_trades_msg(lst, tbl):
         df = pd.DataFrame(
             lst[1], columns=["price", "volume", "time", "side", "orderType", "misc"]
         )
-# check if lst[1] is list or list of list
+        # check if lst[1] is list or list of list
         df = df.drop(columns="misc")
     elif tbl == "kraken_ohlc_stream":
-
         df = pd.DataFrame(
-            [lst[1]], columns=["time", "etime", "open", "high", "low", "close", 'vwap', 'volume', 'count']
+            [lst[1]],
+            columns=[
+                "time",
+                "etime",
+                "open",
+                "high",
+                "low",
+                "close",
+                "vwap",
+                "volume",
+                "count",
+            ],
         )
 
     df["channelName"] = lst[2]
     df["pair"] = lst[3]
-    
+
     return df
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Push binance data to Clickhouse")
     parser.add_argument("--table", type=str, default="kraken_trade_data_stream")
     parser.add_argument("--endpoint", type=str, default="wss://ws.kraken.com")
     parser.add_argument("-b", "--batch-size", type=int, default=2)
 
-
-    logging.info("Starting script")
     args = parser.parse_args()
+
+    setup_logging.setup_logging("kraken")
+    logging.info("Starting script")
+
     tbl = args.table
 
     endpoint = args.endpoint
@@ -64,7 +74,7 @@ if __name__ == "__main__":
     params_df = params_df[params_df["table_name"] == tbl]
 
     pair = params_df["pair"].values[0]
-    pair_list = result = [s.strip() for s in pair.split(",")]
+    pair_list = [s.strip() for s in pair.split(",")]
 
     subscription = params_df["subscription"].values[0]
 
@@ -87,3 +97,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
     )
     client.run()
+
+
+if __name__ == "__main__":
+    main()
