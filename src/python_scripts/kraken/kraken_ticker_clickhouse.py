@@ -9,22 +9,10 @@ import hashlib
 import time
 import argparse
 import pandas as pd
+from packages import setup_logging
 import json
 
-# Ensure the LOG directory exists
-log_dir = os.path.expanduser("~/workspace/LOG")
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
-
-# Get the current date and time to format the log filename
-current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_filename = f"{log_dir}/kraken_feed_ch_{current_time}.log"
-
-logging.basicConfig(
-    # filename=log_filename,
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+setup_logging.setup_logging('kraken_trades')
 
 class KrakenWebsocketClient(WebSocketClient):
     def on_message(self, ws, message):

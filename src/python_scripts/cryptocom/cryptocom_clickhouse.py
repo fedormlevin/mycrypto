@@ -2,26 +2,15 @@
 
 import os
 from packages.websocket_handler import WebSocketClient
+from packages import setup_logging
 import logging
 from datetime import datetime
 import argparse
 import pandas as pd
 import json
 
-# Ensure the LOG directory exists
-log_dir = os.path.expanduser("~/workspace/LOG")
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
 
-# Get the current date and time to format the log filename
-current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_filename = f"{log_dir}/kraken_feed_ch_{current_time}.log"
-
-logging.basicConfig(
-    # filename=log_filename,
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+setup_logging.setup_logging('cryptocom_trades')
 
 class CryptocomWebsocketClient(WebSocketClient):
     def on_message(self, ws, message):
@@ -33,7 +22,7 @@ class CryptocomWebsocketClient(WebSocketClient):
                 "method": "public/respond-heartbeat",
             }
             ws.send(json.dumps(response))
-            print("Responded to heartbeat.")
+            logging.info("Responded to heartbeat")
         
         if data_dict.get('result'):
             if data_dict.get('result').get('channel')=='trade':
