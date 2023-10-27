@@ -8,7 +8,7 @@ import hmac
 import hashlib
 import time
 import argparse
-from packages import setup_logging
+from packages import utils
 import pandas as pd
 import json
 
@@ -60,7 +60,7 @@ def main():
 
     args = parser.parse_args()
 
-    setup_logging.setup_logging("coinbase")
+    utils.setup_logging("coinbase")
     logging.info("Starting script")
 
     tbl = args.table

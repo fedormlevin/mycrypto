@@ -7,11 +7,11 @@ from clickhouse_driver import Client
 from datetime import datetime
 import logging
 from functools import partial
-from packages import setup_logging
+from packages import utils
 import argparse
 import os
 
-setup_logging.setup_logging('binance')
+utils.setup_logging('binance')
 
 
 DF_LIST = []

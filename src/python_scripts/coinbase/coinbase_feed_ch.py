@@ -12,9 +12,9 @@ import hmac
 import hashlib
 import time
 from functools import partial
-from packages import setup_logging
+from packages import utils
 
-setup_logging.setup_logging('coinbase')
+utils.setup_logging('coinbase')
 
 def sign(str_to_sign, secret):
     return hmac.new(secret.encode(), str_to_sign.encode(), hashlib.sha256).hexdigest()

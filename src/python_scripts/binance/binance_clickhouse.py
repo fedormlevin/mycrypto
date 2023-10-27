@@ -8,7 +8,7 @@ import hmac
 import hashlib
 import time
 import argparse
-from packages import setup_logging
+from packages import utils
 import pandas as pd
 import json
 
@@ -31,26 +31,17 @@ class BinanceWebsocketClient(WebSocketClient):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Push binance data to Clickhouse")
-    parser.add_argument("--table", type=str, default="binance_symbol_ticker_stream")
-    parser.add_argument(
-        "--endpoint", type=str, default="wss://stream.binance.us:9443/ws"
-    )
-    parser.add_argument("-b", "--batch-size", type=int, default=5)
-
-    args = parser.parse_args()
-    setup_logging.setup_logging("binance")
-    logging.info("Starting script")
+    # python binance_clickhouse.py --table binance_ticker_order_book_stream --endpoint wss://stream.binance.us:9443/ws -b 2 --log-name binance
+    args = utils.setup_args()
 
     tbl = args.table
 
     endpoint = args.endpoint
     batch_size = args.batch_size
 
-    params_df = pd.read_csv(
-        "/Users/fedorlevin/workspace/mycrypto/binance_md_config.csv"
+    params_df = utils.load_params_df(
+        "/Users/fedorlevin/workspace/mycrypto/binance_md_config.csv", tbl
     )
-    params_df = params_df[params_df["table_name"] == tbl]
 
     sub_id = params_df["subscription_id"].values[0]
     sub_id_list = [s.strip() for s in sub_id.split(",")]

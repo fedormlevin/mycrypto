@@ -5,7 +5,7 @@ from packages.websocket_handler import WebSocketClient
 import logging
 from datetime import datetime
 import time
-from packages import setup_logging
+from packages import utils
 import ssl
 import argparse
 import pandas as pd
@@ -67,7 +67,7 @@ def main():
 
     args = parser.parse_args()
 
-    setup_logging.setup_logging("gemini")
+    utils.setup_logging("gemini")
     logging.info("Starting script")
 
     tbl = args.table

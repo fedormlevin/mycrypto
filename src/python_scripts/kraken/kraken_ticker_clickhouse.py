@@ -9,7 +9,7 @@ import hashlib
 import time
 import argparse
 import pandas as pd
-from packages import setup_logging
+from packages import utils
 import json
 
 
@@ -70,7 +70,7 @@ def main():
 
     args = parser.parse_args()
 
-    setup_logging.setup_logging("kraken_trades")
+    utils.setup_logging("kraken_trades")
 
     logging.info("Starting script")
 

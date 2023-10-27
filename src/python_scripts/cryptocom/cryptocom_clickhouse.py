@@ -2,7 +2,7 @@
 
 import os
 from packages.websocket_handler import WebSocketClient
-from packages import setup_logging
+from packages import utils
 import logging
 from datetime import datetime
 import argparse
@@ -41,7 +41,7 @@ def main():
 
     args = parser.parse_args()
 
-    setup_logging.setup_logging("cryptocom_trades")
+    utils.setup_logging("cryptocom_trades")
     logging.info("Starting script")
 
     tbl = args.table

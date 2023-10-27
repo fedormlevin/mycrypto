@@ -1,6 +1,8 @@
 import os
 import logging
 from datetime import datetime
+import argparse
+import pandas as pd
 
 
 def setup_logging(log_name="default"):
@@ -22,3 +24,21 @@ def setup_logging(log_name="default"):
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
+
+def setup_args():
+    parser = argparse.ArgumentParser(description="Push exchange data to Clickhouse")
+    parser.add_argument("--table", type=str, required=True)
+    parser.add_argument("--endpoint", type=str, required=True)
+    parser.add_argument("-b", "--batch-size", type=int, required=True)
+    parser.add_argument("--log-name", type=str, required=True, default='log_name')
+    
+    args = parser.parse_args()
+    setup_logging(args.log_name)
+    logging.info("Starting script")
+    
+    return args
+
+
+def load_params_df(csv_path, table_name):
+    params_df = pd.read_csv(csv_path)
+    return params_df[params_df["table_name"] == table_name]

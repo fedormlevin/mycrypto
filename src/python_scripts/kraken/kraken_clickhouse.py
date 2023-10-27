@@ -7,7 +7,7 @@ from datetime import datetime
 import argparse
 import pandas as pd
 import json
-from packages import setup_logging
+from packages import utils
 
 
 class KrakenWebsocketClient(WebSocketClient):
@@ -62,7 +62,7 @@ def main():
 
     args = parser.parse_args()
 
-    setup_logging.setup_logging("kraken")
+    utils.setup_logging("kraken")
     logging.info("Starting script")
 
     tbl = args.table
