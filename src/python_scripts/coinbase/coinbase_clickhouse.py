@@ -7,7 +7,6 @@ from datetime import datetime
 import hmac
 import hashlib
 import time
-import argparse
 from packages import utils
 import pandas as pd
 import json
@@ -51,14 +50,7 @@ def parse_market_trades_msg(msg):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Push coinbase data to Clickhouse")
-    parser.add_argument("--table", type=str, default="coinbase_market_trades_stream")
-    parser.add_argument(
-        "--endpoint", type=str, default="wss://advanced-trade-ws.coinbase.com"
-    )
-    parser.add_argument("-b", "--batch-size", type=int, default=10)
-
-    args = parser.parse_args()
+    args = utils.setup_args()
 
     utils.setup_logging("coinbase")
     logging.info("Starting script")
@@ -95,8 +87,11 @@ def main():
         ch_table=tbl,
         ch_schema=orig_schema.keys(),
         batch_size=batch,
+        stop_after=args.stop_after
     )
     client.run()
+
+
 
 
 if __name__ == "__main__":

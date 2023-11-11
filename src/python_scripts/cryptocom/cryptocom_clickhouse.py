@@ -32,14 +32,15 @@ class CryptocomWebsocketClient(WebSocketClient):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Push cryptocom data to Clickhouse")
-    parser.add_argument("--table", type=str, default="cryptocom_trade_data_stream")
-    parser.add_argument(
-        "--endpoint", type=str, default="wss://stream.crypto.com/exchange/v1/market"
-    )
-    parser.add_argument("-b", "--batch-size", type=int, default=7)
+    # parser = argparse.ArgumentParser(description="Push cryptocom data to Clickhouse")
+    # parser.add_argument("--table", type=str, default="cryptocom_trade_data_stream")
+    # parser.add_argument(
+    #     "--endpoint", type=str, default="wss://stream.crypto.com/exchange/v1/market"
+    # )
+    # parser.add_argument("-b", "--batch-size", type=int, default=7)
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
+    args = utils.setup_args()
 
     utils.setup_logging("cryptocom_trades")
     logging.info("Starting script")
@@ -76,6 +77,7 @@ def main():
         ch_table=tbl,
         ch_schema=orig_schema.keys(),
         batch_size=batch_size,
+        stop_after=args.stop_after
     )
     client.run()
 

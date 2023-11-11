@@ -4,10 +4,6 @@ import os
 from packages.websocket_handler import WebSocketClient
 import logging
 from datetime import datetime
-import hmac
-import hashlib
-import time
-import argparse
 from packages import utils
 import pandas as pd
 import json
@@ -63,6 +59,7 @@ def main():
         ch_table=tbl,
         ch_schema=orig_schema.keys(),
         batch_size=batch_size,
+        stop_after=args.stop_after
     )
     client.run()
 

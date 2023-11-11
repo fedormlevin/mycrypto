@@ -63,12 +63,13 @@ def parse_market_trades_msg(lst):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Push kraken data to Clickhouse")
-    parser.add_argument("--table", type=str, default="kraken_ticker_stream")
-    parser.add_argument("--endpoint", type=str, default="wss://ws.kraken.com")
-    parser.add_argument("-b", "--batch-size", type=int, default=2)
+    # parser = argparse.ArgumentParser(description="Push kraken data to Clickhouse")
+    # parser.add_argument("--table", type=str, default="kraken_ticker_stream")
+    # parser.add_argument("--endpoint", type=str, default="wss://ws.kraken.com")
+    # parser.add_argument("-b", "--batch-size", type=int, default=2)
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
+    args = utils.setup_args()
 
     utils.setup_logging("kraken_trades")
 
@@ -104,6 +105,7 @@ def main():
         ch_table=tbl,
         ch_schema=orig_schema.keys(),
         batch_size=batch_size,
+        stop_after=args.stop_after
     )
     client.run()
 

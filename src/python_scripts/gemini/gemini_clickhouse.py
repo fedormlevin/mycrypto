@@ -58,14 +58,15 @@ def parse_market_trades_msg(msg):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Push gemini data to Clickhouse")
-    parser.add_argument("--table", type=str, default="gemini_multimarketdata_trades")
-    parser.add_argument(
-        "--endpoint", type=str, default="wss://api.gemini.com/v1/multimarketdata"
-    )
-    parser.add_argument("-b", "--batch-size", type=int, default=3)
+    # parser = argparse.ArgumentParser(description="Push gemini data to Clickhouse")
+    # parser.add_argument("--table", type=str, default="gemini_multimarketdata_trades")
+    # parser.add_argument(
+    #     "--endpoint", type=str, default="wss://api.gemini.com/v1/multimarketdata"
+    # )
+    # parser.add_argument("-b", "--batch-size", type=int, default=3)
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
+    args = utils.setup_args()
 
     utils.setup_logging("gemini")
     logging.info("Starting script")
@@ -98,6 +99,7 @@ def main():
         ch_table=tbl,
         ch_schema=orig_schema.keys(),
         batch_size=batch,
+        stop_after=args.stop_after
     )
     client.run()
 

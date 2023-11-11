@@ -3,6 +3,12 @@ import logging
 from datetime import datetime
 import argparse
 import pandas as pd
+import sys
+
+
+def stop_script(signum, frame):
+    logging.info("Scheduled stop of the script after 2 hours.")
+    sys.exit(0)
 
 
 def setup_logging(log_name="default"):
@@ -31,6 +37,7 @@ def setup_args():
     parser.add_argument("--endpoint", type=str, required=True)
     parser.add_argument("-b", "--batch-size", type=int, required=True)
     parser.add_argument("--log-name", type=str, required=True, default='log_name')
+    parser.add_argument("--stop-after", type=int, required=True, default=86400)  # 24 hrs
     
     args = parser.parse_args()
     setup_logging(args.log_name)

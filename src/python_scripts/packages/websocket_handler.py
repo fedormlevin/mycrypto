@@ -5,19 +5,20 @@ from clickhouse_driver import Client
 from datetime import datetime
 import logging
 from functools import partial
-import argparse
-import os
+import signal
+import sys
 
 
 class WebSocketClient:
     DF_LIST = []
 
-    def __init__(self, endpoint, payload, ch_table, ch_schema, batch_size):
+    def __init__(self, endpoint, payload, ch_table, ch_schema, batch_size, stop_after):
         self.endpoint = endpoint
         self.payload = payload
         self.ch_table = ch_table
         self.ch_schema = ch_schema
         self.batch_size = batch_size
+        self.stop_after = stop_after
 
     def on_message(self, ws, message):
         # print(message)
@@ -52,7 +53,14 @@ class WebSocketClient:
     def on_open(self, ws):
         ws.send(json.dumps(self.payload))
 
+    def stop_script(self, signum, frame):
+        sys.exit(0)
+
     def run(self):
+        signal.signal(signal.SIGALRM, self.stop_script)
+        logging.info(f"Scheduled stop the script after {self.stop_after} sec")
+        signal.alarm(self.stop_after)
+        
         ws = websocket.WebSocketApp(
             self.endpoint,
             on_open=self.on_open,
