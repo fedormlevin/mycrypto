@@ -28,8 +28,8 @@ with DAG(
             "--table cryptocom_trade_data_stream "
             "--endpoint wss://stream.crypto.com/exchange/v1/market "
             "-b 2 "
-            "--log-name cryptocom_trades "
-            f"--stop-after {STOP}"
+            "--log-name cryptocom_trades"
+            f"--stop-after {STOP} "
         )
     )
 

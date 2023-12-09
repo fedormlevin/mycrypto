@@ -1,12 +1,12 @@
-import pendulum
+from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.latest_only_operator import LatestOnlyOperator
 
 with DAG(
     dag_id="my_dag",
-    start_date=pendulum.datetime(2023, 12, 8),
-    schedule="30 15 * * *",
+    start_date=(datetime.utcnow() - timedelta(days=1)),
+    schedule="50 14 * * *",
     catchup=False
     
 ) as dag:
