@@ -28,7 +28,7 @@ class WebSocketClient:
             self.flush_to_ch(df, self.ch_table, self.ch_schema)
 
     def flush_to_ch(self, df, ch_table, ch_schema):
-        client = Client("localhost")
+        client = Client("localhost", user='default', password='myuser')
 
         df = df.apply(pd.to_numeric, errors="ignore")
         df = df[ch_schema]
@@ -41,7 +41,7 @@ class WebSocketClient:
         df["insert_time"] = int(microseconds_since_epoch)
 
         logging.info(f"Dumping batch of {len(self.DF_LIST)}")
-        client.execute(f"INSERT INTO {ch_table} VALUES", df.values.tolist())
+        client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())
         self.DF_LIST = []
 
     def on_error(self, ws, error):

@@ -38,7 +38,7 @@ def main():
 
     current_date = datetime.now().strftime("%Y%m%d")
     filename = f"binance_secmaster_{current_date}.csv"
-    result_df.to_csv(f"/Users/fedorlevin/workspace/data/binance/refdata/{filename}", index=False)
+    result_df.to_csv(f"/Users/fedorlevin/develop/data/binance/refdata/{filename}", index=False)
 
 
 if __name__ == "__main__":

@@ -136,3 +136,4 @@ unset __conda_setup
 conda activate crypto
 
 export AIRFLOW_HOME=~/airflow
+export PYTHONPATH="${PYTHONPATH}:${HOME}/develop/mycrypto/src/python_scripts"

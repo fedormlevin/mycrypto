@@ -23,7 +23,7 @@ with DAG(
     task1 = BashOperator(
         task_id='gemini_trades_feed',
         bash_command=(
-            "python /Users/fedorlevin/workspace/mycrypto/src/python_scripts/gemini/"
+            "python /Users/fedorlevin/develop/mycrypto/src/python_scripts/gemini/"
             "gemini_clickhouse.py "
             "--table gemini_multimarketdata_trades "
             "--endpoint wss://api.gemini.com/v1/multimarketdata "

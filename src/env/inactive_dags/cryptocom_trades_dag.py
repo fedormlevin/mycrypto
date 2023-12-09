@@ -23,7 +23,7 @@ with DAG(
     task1 = BashOperator(
         task_id='cryptocom_trades_feed',
         bash_command=(
-            "python /Users/fedorlevin/workspace/mycrypto/src/python_scripts/cryptocom/"
+            "python /Users/fedorlevin/develop/mycrypto/src/python_scripts/cryptocom/"
             "cryptocom_clickhouse.py "
             "--table cryptocom_trade_data_stream "
             "--endpoint wss://stream.crypto.com/exchange/v1/market "

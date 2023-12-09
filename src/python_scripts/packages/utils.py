@@ -17,7 +17,7 @@ def setup_logging(log_name="default"):
     """
 
     # Ensure the LOG directory exists
-    log_dir = os.path.expanduser("~/workspace/LOG")
+    log_dir = os.path.expanduser("~/develop/LOG")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 

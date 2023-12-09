@@ -61,7 +61,7 @@ def main():
     endpoint = args.endpoint
 
     params_df = pd.read_csv(
-        "/Users/fedorlevin/workspace/mycrypto/coinbase_md_config.csv"
+        "/Users/fedorlevin/develop/mycrypto/coinbase_md_config.csv"
     )
     params_df = params_df[params_df["table_name"] == tbl]
     channel = params_df["channel"].values[0]

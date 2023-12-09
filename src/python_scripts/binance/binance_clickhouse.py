@@ -36,7 +36,7 @@ def main():
     batch_size = args.batch_size
 
     params_df = utils.load_params_df(
-        "/Users/fedorlevin/workspace/mycrypto/binance_md_config.csv", tbl
+        "~/develop/mycrypto/binance_md_config.csv", tbl
     )
 
     sub_id = params_df["subscription_id"].values[0]

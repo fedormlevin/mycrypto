@@ -23,7 +23,7 @@ with DAG(
     task1 = BashOperator(
         task_id='coinbase_trades_feed',
         bash_command=(
-            "python /Users/fedorlevin/workspace/mycrypto/src/python_scripts/coinbase/"
+            "python /Users/fedorlevin/develop/mycrypto/src/python_scripts/coinbase/"
             "coinbase_clickhouse.py "
             "--table coinbase_market_trades_stream "
             "--endpoint wss://advanced-trade-ws.coinbase.com "

@@ -1,2 +1,2 @@
 table_name,channel,product_ids,colnames_json
-coinbase_market_trades_stream,market_trades,BTC-USD,~/workspace/mycrypto/refdata/coinbase/coinbase_market_trades_stream_colnames.json
+coinbase_market_trades_stream,market_trades,BTC-USD,~/develop/mycrypto/refdata/coinbase/coinbase_market_trades_stream_colnames.json

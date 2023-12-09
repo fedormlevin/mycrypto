@@ -6,7 +6,7 @@ import argparse
 from clickhouse_driver import Client
 
 # Ensure the LOG directory exists
-log_dir = os.path.expanduser("~/workspace/LOG")
+log_dir = os.path.expanduser("~/develop/LOG")
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 

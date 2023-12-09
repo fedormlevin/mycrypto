@@ -24,7 +24,7 @@ with DAG(
     task1 = BashOperator(
         task_id='binance_trades_feed',
         bash_command=(
-            "python /Users/fedorlevin/workspace/mycrypto/src/python_scripts/binance/"
+            "python /Users/fedorlevin/develop/mycrypto/src/python_scripts/binance/"
             "binance_clickhouse.py "
             "--table binance_trade_data_stream "
             "--endpoint wss://stream.binance.us:9443/ws "

@@ -71,7 +71,7 @@ def main():
     endpoint = args.endpoint
     batch_size = args.batch_size
 
-    params_df = pd.read_csv("/Users/fedorlevin/workspace/mycrypto/kraken_md_config.csv")
+    params_df = pd.read_csv("/Users/fedorlevin/develop/mycrypto/kraken_md_config.csv")
     params_df = params_df[params_df["table_name"] == tbl]
 
     pair = params_df["pair"].values[0]

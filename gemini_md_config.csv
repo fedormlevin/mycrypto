@@ -1,2 +1,2 @@
 table_name,symbols,heartbeat,top_of_book,bids,offers,trades,colnames_json
-gemini_multimarketdata_trades,"BTCUSD,ETHUSD",true,false,false,false,true,~/workspace/mycrypto/refdata/gemini/gemini_multimarketdata_trades_colnames.json
+gemini_multimarketdata_trades,"BTCUSD,ETHUSD",true,false,false,false,true,~/develop/mycrypto/refdata/gemini/gemini_multimarketdata_trades_colnames.json

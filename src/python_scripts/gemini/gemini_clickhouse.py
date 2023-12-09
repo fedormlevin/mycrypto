@@ -76,7 +76,7 @@ def main():
 
     endpoint = args.endpoint
 
-    params_df = pd.read_csv("/Users/fedorlevin/workspace/mycrypto/gemini_md_config.csv")
+    params_df = pd.read_csv("/Users/fedorlevin/develop/mycrypto/gemini_md_config.csv")
     params_df = params_df[params_df["table_name"] == tbl]
 
     symbols = params_df["symbols"].values[0]

@@ -23,7 +23,7 @@ with DAG(
     task1 = BashOperator(
         task_id='kraken_trades_feed',
         bash_command=(
-            "python /Users/fedorlevin/workspace/mycrypto/src/python_scripts/kraken/"
+            "python /Users/fedorlevin/develop/mycrypto/src/python_scripts/kraken/"
             "kraken_clickhouse.py "
             "--table kraken_trade_data_stream "
             "--endpoint wss://ws.kraken.com "
