@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOG_DIR=~/airflow/logs
+LOG_DIR=$HOME/airflow/logs
 SCRIPT_LOG=$LOG_DIR/check_airflow_processes.log
 NOT_FOUND_MESSAGE=""
 

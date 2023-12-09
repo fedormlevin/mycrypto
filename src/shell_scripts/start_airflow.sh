@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOG_DIR=~/airflow/logs
+LOG_DIR=$HOME/airflow/logs
 WEB_LOG=$LOG_DIR/webserver.log
 SCHED_LOG=$LOG_DIR/scheduler.log
 SCRIPT_LOG=$LOG_DIR/startup_script.log

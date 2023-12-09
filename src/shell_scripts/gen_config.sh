@@ -1,6 +1,6 @@
 #!/bin/bash
 
-input_file="/Users/fedorlevin/workspace/mycrypto/refdata_config.csv"
+input_file="$HOME/develop/mycrypto/refdata_config.csv"
 output_file="$HOME/.my_config"
 
 # Empty or create the output file

@@ -4,7 +4,7 @@
 current_date="2023-11-04"
 
 # The directory where you want to search for folders (replace with your actual path)
-search_dir="/Users/fedorlevin/workspace/airflow/logs"
+search_dir="$HOME/airflow/logs"
 
 # Find directories with date names and traverse recursively
 # Find directories with date names and traverse recursively

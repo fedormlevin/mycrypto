@@ -3,7 +3,7 @@
 # doesn't work on Mac
 
 # Directory containing the logs
-LOG_DIR="~/workspace/LOG"
+LOG_DIR="$HOME/workspace/LOG"
 
 # Calculate the date from 5 days ago
 DATE_5_DAYS_AGO=$(date -d "5 days ago" +%Y%m%d)

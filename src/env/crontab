@@ -22,4 +22,5 @@
 # 
 # m h  dom mon dow   command
 
-0 * * * * ~/develop/mycrypto/src/shell_scripts/check_airflow.sh
+0 * * * * bash $HOME/develop/mycrypto/src/shell_scripts/check_airflow.sh
+55 23 * * * bash $HOME/develop/mycrypto/src/shell_scripts/stop_airflow.sh

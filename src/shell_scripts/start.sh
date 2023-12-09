@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set the default log directory
-LOG_DIR="/Users/fedorlevin/workspace/LOG"
+LOG_DIR="$HOME/LOG"
 
 # Get the current date and time with seconds precision
 CURRENT_DATETIME=$(date +"%Y%m%d_%H%M%S")

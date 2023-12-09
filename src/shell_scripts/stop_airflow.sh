@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOG_DIR=~/airflow/logs
+LOG_DIR=$HOME/airflow/logs
 SCRIPT_LOG=$LOG_DIR/kill_airflow_script.log
 
 # Check if log directory exists, create if not
