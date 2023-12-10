@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 
-EXCHANGE = 'coinbase'
+EXCHANGE = 'cryptocom'
 STOP_AFTER = 6000
-ENDPOINT = 'wss://advanced-trade-ws.coinbase.com'
+ENDPOINT = 'wss://stream.crypto.com/exchange/v1/market'
 BATCH_SIZE = 100
-SCHEDULE="11 00 * * *"
+SCHEDULE="13 00 * * *"
 
 default_args = {
     'depends_on_past': False,
@@ -28,7 +28,7 @@ with DAG(
         task_id='consume_trade_stream',
         bash_command=f'python $HOME/develop/mycrypto/src/python_scripts/{EXCHANGE}/'
         f'{EXCHANGE}_clickhouse.py '
-        '--table coinbase_market_trades_stream '
+        '--table kraken_trade_data_stream '
         f'--endpoint {ENDPOINT} '
         f'-b {BATCH_SIZE} '
         f'--log-name {EXCHANGE}_trades '

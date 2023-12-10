@@ -6,7 +6,7 @@ EXCHANGE = 'kraken'
 STOP_AFTER = 6000
 ENDPOINT = 'wss://ws.kraken.com'
 BATCH_SIZE = 100
-SCHEDULE="12 00 * * *",
+SCHEDULE="12 00 * * *"
 
 default_args = {
     'depends_on_past': False,

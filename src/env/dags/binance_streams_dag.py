@@ -6,7 +6,7 @@ EXCHANGE = 'binance'
 STOP_AFTER = 6000
 ENDPOINT = 'wss://stream.binance.us:9443/ws'
 BATCH_SIZE = 100
-SCHEDULE="10 00 * * *",
+SCHEDULE="10 00 * * *"
 
 default_args = {
     'depends_on_past': False,
