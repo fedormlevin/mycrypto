@@ -51,7 +51,7 @@ def main():
     batch_size = args.batch_size
 
     params_df = pd.read_csv(
-        "/Users/fedorlevin/develop/mycrypto/cryptocom_md_config.csv"
+        "~/develop/mycrypto/cryptocom_md_config.csv"
     )
     params_df = params_df[params_df["table_name"] == tbl]
 

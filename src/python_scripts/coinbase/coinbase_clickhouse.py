@@ -6,6 +6,7 @@ import logging
 from datetime import datetime
 import hmac
 import hashlib
+from dotenv import load_dotenv
 import time
 from packages import utils
 import pandas as pd
@@ -17,7 +18,7 @@ def sign(str_to_sign, secret):
 
 
 def timestamp_and_sign(message, channel, products=[]):
-    api_secret = os.environ["coinbase_api_secret"]
+    api_secret = os.environ.get("coinbase_api_secret")
     timestamp = str(int(time.time()))
     str_to_sign = f"{timestamp}{channel}{''.join(products)}"
     sig = sign(str_to_sign, api_secret)
@@ -50,6 +51,8 @@ def parse_market_trades_msg(msg):
 
 
 def main():
+    load_dotenv()  # only for coinbase to get api key secret
+    
     args = utils.setup_args()
 
     utils.setup_logging("coinbase")
@@ -61,7 +64,7 @@ def main():
     endpoint = args.endpoint
 
     params_df = pd.read_csv(
-        "/Users/fedorlevin/develop/mycrypto/coinbase_md_config.csv"
+        "~/develop/mycrypto/coinbase_md_config.csv"
     )
     params_df = params_df[params_df["table_name"] == tbl]
     channel = params_df["channel"].values[0]
@@ -76,7 +79,7 @@ def main():
     message = {
         "type": "subscribe",
         "channel": channel,
-        "api_key": os.environ["coinbase_api_key"],
+        "api_key": os.environ.get("coinbase_api_key"),
         "product_ids": product_ids_list,
     }
     payload = timestamp_and_sign(message, channel, product_ids_list)

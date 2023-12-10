@@ -106,7 +106,7 @@ if __name__ == "__main__":
     endpoint = args.endpoint
     batch_size = args.batch_size
 
-    params_df = pd.read_csv("/Users/fedorlevin/develop/mycrypto/binance_md_config.csv")
+    params_df = pd.read_csv("~/develop/mycrypto/binance_md_config.csv")
     params_df = params_df[params_df["table_name"] == tbl]
 
     sub_id = params_df["subscription_id"].values[0]

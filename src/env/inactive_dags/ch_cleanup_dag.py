@@ -22,7 +22,7 @@ with DAG(
     task1 = BashOperator(
         task_id='ch_md_tables_clean',
         bash_command=(
-            "python /Users/fedorlevin/develop/mycrypto/src/python_scripts/infra/"
+            "python ~/develop/mycrypto/src/python_scripts/infra/"
             "cleanup_ch.py "
             "--days 5"
         )

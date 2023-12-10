@@ -21,7 +21,7 @@ def on_message(ws, message):
     if len(DF_LIST) > n_records:
         df = pd.concat(DF_LIST)
         df.to_csv(
-            "/Users/fedorlevin/develop/data/binance/binance_traiding_pairs.csv",
+            "~/develop/data/binance/binance_traiding_pairs.csv",
             index=False,
         )
         print(f'loaded {n_records} records')

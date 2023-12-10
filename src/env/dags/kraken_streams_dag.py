@@ -2,9 +2,9 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 
-EXCHANGE = 'binance'
+EXCHANGE = 'kraken'
 STOP_AFTER = 6000
-ENDPOINT = 'wss://stream.binance.us:9443/ws'
+ENDPOINT = 'wss://ws.kraken.com'
 BATCH_SIZE = 100
 
 default_args = {
@@ -14,7 +14,7 @@ default_args = {
     'email_on_failure': True,
     'email_on_retry': False,
     'retries': 0,
-    'schedule': "11 00 * * *"
+    'schedule': "12 00 * * *"
 }
 
 with DAG(
@@ -24,13 +24,13 @@ with DAG(
 ) as dag:
     
     task1 = BashOperator(
-        task_id='consume_order_book_stream',
+        task_id='consume_trade_stream',
         bash_command=f'python $HOME/develop/mycrypto/src/python_scripts/{EXCHANGE}/'
         f'{EXCHANGE}_clickhouse.py '
-        '--table binance_ticker_order_book_stream '
+        '--table kraken_trade_data_stream '
         f'--endpoint {ENDPOINT} '
         f'-b {BATCH_SIZE} '
-        f'--log-name {EXCHANGE}_order_book '
+        f'--log-name {EXCHANGE}_trades '
         f'--stop-after {STOP_AFTER} '
     )
     

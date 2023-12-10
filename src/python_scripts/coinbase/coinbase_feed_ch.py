@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     endpoint = args.endpoint
 
-    params_df = pd.read_csv("/Users/fedorlevin/develop/mycrypto/coinbase_md_config.csv")
+    params_df = pd.read_csv("~/develop/mycrypto/coinbase_md_config.csv")
     params_df = params_df[params_df["table_name"] == tbl]
     channel = params_df["channel"].values[0]
     product_ids = params_df["product_ids"].values[0]
