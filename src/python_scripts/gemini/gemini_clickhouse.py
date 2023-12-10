@@ -34,7 +34,7 @@ def build_endpoint(
     trades="true",
 ):
     base_url = (
-        f"{endpoint}?symbols={symbols}?heartbeat={heartbeat}"
+        f"{endpoint}?symbols={symbols}&heartbeat={heartbeat}"
         f"&top_of_book={top_of_book}&bids={bids}&offers={offers}&trades={trades}"
     )
 

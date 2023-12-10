@@ -4,13 +4,14 @@ import pandas as pd
 from clickhouse_driver import Client
 from datetime import datetime
 import logging
+import time
 from functools import partial
 import signal
 import sys
 
 
 class WebSocketClient:
-    DF_LIST = []
+    # DF_LIST = []
 
     def __init__(self, endpoint, payload, ch_table, ch_schema, batch_size, stop_after):
         self.endpoint = endpoint
@@ -19,11 +20,15 @@ class WebSocketClient:
         self.ch_schema = ch_schema
         self.batch_size = batch_size
         self.stop_after = stop_after
+        self.start_time = time.time()
+        self.DF_LIST = []
 
     def on_message(self, ws, message):
-        # print(message)
+        current_time = time.time()
+        elapsed_time = current_time - self.start_time
+        
 
-        if len(self.DF_LIST) >= self.batch_size:
+        if len(self.DF_LIST) >= self.batch_size or (len(self.DF_LIST) > 0 and elapsed_time >= self.stop_after - 10):
             df = pd.concat(self.DF_LIST)
             self.flush_to_ch(df, self.ch_table, self.ch_schema)
 
