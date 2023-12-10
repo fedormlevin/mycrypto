@@ -21,6 +21,8 @@ class WebSocketClient:
         self.batch_size = batch_size
         self.stop_after = stop_after
         self.start_time = time.time()
+        self.first_batch_flushed = False
+        self.total_records_flushed = 0
         self.DF_LIST = []
 
     def on_message(self, ws, message):
@@ -45,8 +47,12 @@ class WebSocketClient:
         microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
         df["insert_time"] = int(microseconds_since_epoch)
 
-        logging.info(f"Dumping batch of {len(self.DF_LIST)}")
+        if not self.first_batch_flushed:
+            logging.info(f"Dumping batch of {len(self.DF_LIST)}")
+            self.first_batch_flushed = True
+            
         client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())
+        self.total_records_flushed += len(self.DF_LIST)
         self.DF_LIST = []
 
     def on_error(self, ws, error):
@@ -59,6 +65,7 @@ class WebSocketClient:
         ws.send(json.dumps(self.payload))
 
     def stop_script(self, signum, frame):
+        logging.info(f'Done. Total Number of records in batches: {self.total_records_flushed}')
         sys.exit(0)
 
     def run(self):
