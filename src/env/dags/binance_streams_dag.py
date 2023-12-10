@@ -6,6 +6,7 @@ EXCHANGE = 'binance'
 STOP_AFTER = 6000
 ENDPOINT = 'wss://stream.binance.us:9443/ws'
 BATCH_SIZE = 100
+SCHEDULE="10 00 * * *",
 
 default_args = {
     'depends_on_past': False,
@@ -13,14 +14,14 @@ default_args = {
     'start_date': (datetime.utcnow() - timedelta(days=1)),
     'email_on_failure': True,
     'email_on_retry': False,
-    'retries': 0,
-    'schedule': "11 00 * * *"
+    'retries': 0
 }
 
 with DAG(
     dag_id=f"{EXCHANGE}_streams",
     default_args=default_args,
-    description=f'{EXCHANGE} market data feeds'
+    description=f'{EXCHANGE} market data feeds',
+    schedule=SCHEDULE
 ) as dag:
     
     task1 = BashOperator(
