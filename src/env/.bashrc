@@ -137,3 +137,5 @@ conda activate crypto
 
 export AIRFLOW_HOME=~/airflow
 export PYTHONPATH="${PYTHONPATH}:${HOME}/develop/mycrypto/src/python_scripts"
+
+alias juplab='nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser > jupyterlab.out 2>&1 &'
