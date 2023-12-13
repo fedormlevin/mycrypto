@@ -1,9 +1,13 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 EXCHANGE = 'binance'
-STOP_AFTER = 6000
+STOP_AFTER = os.environ.get('stop_md_stream_after')
 ENDPOINT = 'wss://stream.binance.us:9443/ws'
 BATCH_SIZE = 100
 SCHEDULE="10 00 * * *"

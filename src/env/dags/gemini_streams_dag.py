@@ -1,9 +1,13 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 EXCHANGE = 'gemini'
-STOP_AFTER = 6000
+STOP_AFTER = os.environ.get('stop_md_stream_after')
 ENDPOINT = 'wss://api.gemini.com/v1/multimarketdata'
 BATCH_SIZE = 100
 SCHEDULE="14 00 * * *"
