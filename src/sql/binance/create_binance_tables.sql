@@ -39,8 +39,8 @@ CREATE TABLE binance_trade_data_stream
     buyer_order_id Int64,
     seller_order_id Int64,
     trade_time UInt64,
-    market_maker String,
-    ignore String,
+    market_maker Bool,
+    ignore Bool,
     date Date,
     insert_time UInt64
 ) ENGINE = MergeTree()

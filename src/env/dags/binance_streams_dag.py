@@ -36,7 +36,13 @@ with DAG(
     )
     
     task2 = BashOperator(
-        task_id='dummy_task',
-        bash_command='echo second stream '
+        task_id='consume_trade_stream',
+        bash_command=f'python $HOME/develop/mycrypto/src/python_scripts/{EXCHANGE}/'
+        f'{EXCHANGE}_clickhouse.py '
+        '--table binance_trade_data_stream '
+        f'--endpoint {ENDPOINT} '
+        f'-b {BATCH_SIZE} '
+        f'--log-name {EXCHANGE}_trades '
+        f'--stop-after {STOP_AFTER} '
     )
     
