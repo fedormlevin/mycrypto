@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
 import os
-from packages.websocket_handler import WebSocketClient
+from packages.websocket_handler2 import WebSocketClient
+from packages.market_data_handler import MDProcessor
 from packages import utils
 import logging
 from datetime import datetime
 import argparse
 import pandas as pd
 import json
+import threading
+from queue import Queue
+import time
 
 
 class CryptocomWebsocketClient(WebSocketClient):
@@ -24,22 +28,13 @@ class CryptocomWebsocketClient(WebSocketClient):
 
         if data_dict.get("result"):
             if data_dict.get("result").get("channel") == "trade":
-                df_ = pd.DataFrame(data_dict["result"]["data"])
-                self.DF_LIST.append(df_)
-                return super().on_message(ws, message)
+                data_dict = data_dict["result"]["data"]
+                return super().on_message(ws, data_dict)
         else:
             return
 
 
 def main():
-    # parser = argparse.ArgumentParser(description="Push cryptocom data to Clickhouse")
-    # parser.add_argument("--table", type=str, default="cryptocom_trade_data_stream")
-    # parser.add_argument(
-    #     "--endpoint", type=str, default="wss://stream.crypto.com/exchange/v1/market"
-    # )
-    # parser.add_argument("-b", "--batch-size", type=int, default=7)
-
-    # args = parser.parse_args()
     args = utils.setup_args()
 
     utils.setup_logging("cryptocom_trades")
@@ -50,9 +45,7 @@ def main():
     endpoint = args.endpoint
     batch_size = args.batch_size
 
-    params_df = pd.read_csv(
-        "~/develop/mycrypto/cryptocom_md_config.csv"
-    )
+    params_df = pd.read_csv("~/develop/mycrypto/cryptocom_md_config.csv")
     params_df = params_df[params_df["table_name"] == tbl]
 
     pair = params_df["pair"].values[0]
@@ -71,15 +64,40 @@ def main():
         "params": {"channels": [f"{channel}.{pair}"]},  # this needs to be changed
     }
 
+    preprocessing_queue = Queue()
+    db_queue = Queue()
+
     client = CryptocomWebsocketClient(
+        queue=preprocessing_queue,
         endpoint=endpoint,
         payload=payload,
-        ch_table=tbl,
-        ch_schema=orig_schema.keys(),
-        batch_size=batch_size,
-        stop_after=args.stop_after
     )
-    client.run()
+    md_handler = MDProcessor()
+
+    ws_thread = threading.Thread(target=client.run)
+    ws_thread.start()
+
+    ps_thread = threading.Thread(
+        target=md_handler.prepare_data, args=(preprocessing_queue, db_queue, batch_size)
+    )
+    ps_thread.start()
+
+    db_thread = threading.Thread(
+        target=md_handler.flush_to_clickhouse, args=(db_queue, orig_schema.keys(), tbl)
+    )
+    db_thread.start()
+
+    time.sleep(args.stop_after)
+
+    client.stop()
+    preprocessing_queue.put("POISON_PILL")
+
+    ws_thread.join()
+    ps_thread.join()
+    db_thread.join()
+
+    logging.info(f"Records processed: {md_handler.batches_processed}")
+    logging.info(f"N inserts: {md_handler.n_inserts}")
 
 
 if __name__ == "__main__":

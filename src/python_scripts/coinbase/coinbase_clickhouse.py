@@ -35,18 +35,19 @@ class CoinbaseWebsocketClient(WebSocketClient):
 
 def parse_market_trades_msg(msg):
     message = json.loads(msg)
+    # logging.info(message)
     if message["channel"] == "market_trades":
         trades_df = pd.DataFrame(message["events"][0]["trades"])
+        if not trades_df.empty:
+            trades_df["channel"] = message["channel"]
+            trades_df["client_id"] = message["client_id"]
+            trades_df["timestamp"] = message["timestamp"]
+            trades_df["sequence_num"] = message["sequence_num"]
 
-        trades_df["channel"] = message["channel"]
-        trades_df["client_id"] = message["client_id"]
-        trades_df["timestamp"] = message["timestamp"]
-        trades_df["sequence_num"] = message["sequence_num"]
+            for col in ["time", "timestamp"]:
+                trades_df[col] = pd.to_datetime(trades_df[col])
 
-        for col in ["time", "timestamp"]:
-            trades_df[col] = pd.to_datetime(trades_df[col])
-
-        trades_df = trades_df.drop(columns="client_id")
+            trades_df = trades_df.drop(columns="client_id")
         return trades_df
 
 

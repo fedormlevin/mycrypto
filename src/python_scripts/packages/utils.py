@@ -49,3 +49,26 @@ def setup_args():
 def load_params_df(csv_path, table_name):
     params_df = pd.read_csv(csv_path)
     return params_df[params_df["table_name"] == table_name]
+
+
+def flush_to_ch(df, ch_table, ch_schema):
+    client = Client("localhost", user='default', password='myuser')
+
+    df = df.apply(pd.to_numeric, errors="ignore")
+    df = df[ch_schema]
+
+    now_utc = datetime.utcnow()
+    df["date"] = now_utc.date()
+
+    epoch = datetime.utcfromtimestamp(0)
+    microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
+    df["insert_time"] = int(microseconds_since_epoch)
+
+    if not first_batch_flushed:
+        logging.info(f"Dumping batch of {len(df_list)}")
+        first_batch_flushed = True
+        
+    client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())
+    total_records_flushed += len(df_list)
+    df_list = []
+    return df_list
