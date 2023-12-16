@@ -6,8 +6,6 @@ import threading
 
 
 class WebSocketClient:
-    # DF_LIST = []
-
     def __init__(self, queue, endpoint, payload):
         self.queue = queue
         self.endpoint = endpoint
@@ -15,9 +13,15 @@ class WebSocketClient:
         self.stop_event = threading.Event()
         self.start_time = time.time()
         self.df_list = []
+        self.first_message = True
 
     def on_message(self, ws, message):
         self.queue.put(message)
+        
+        if self.first_message:
+            logging.info('1st message is in processing queue')
+            self.first_message = False
+            
         if self.stop_event.is_set():
             logging.info("WS Stop Event is set")
             ws.close()

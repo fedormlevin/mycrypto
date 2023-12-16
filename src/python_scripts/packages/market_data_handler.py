@@ -19,9 +19,11 @@ class MDProcessor:
 
             if data == "POISON_PILL":
                 logging.info("Stop flag in processing_queue")
+                
                 if dict_list:
                     db_queue.put(dict_list)
-                    db_queue.put("POISON_PILL")
+                    
+                db_queue.put("POISON_PILL")
                 break
 
             if data:
@@ -35,7 +37,6 @@ class MDProcessor:
     def flush_to_clickhouse(self, db_queue, ch_schema, ch_table):
         while True:
             data = db_queue.get()
-
             db_queue.task_done()
 
             if data == "POISON_PILL":
@@ -58,6 +59,10 @@ class MDProcessor:
                 logging.info(f"Dumping 1st batch of len {len(df)}")
 
             client = Client("localhost", user="default", password="myuser")
-            client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())
+            try:
+                client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())
+            except Exception as e:
+                logging.error(f'Clickhouse exception: {e}')
+                
             self.batches_processed += len(df)
             self.n_inserts += 1
