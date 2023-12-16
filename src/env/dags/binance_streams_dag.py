@@ -31,7 +31,7 @@ with DAG(
     task1 = BashOperator(
         task_id='consume_order_book_stream',
         bash_command=f'python $HOME/develop/mycrypto/src/python_scripts/{EXCHANGE}/'
-        f'{EXCHANGE}_clickhouse.py '
+        f'{EXCHANGE}_clickhouse2.py '
         '--table binance_ticker_order_book_stream '
         f'--endpoint {ENDPOINT} '
         f'-b {BATCH_SIZE} '
@@ -42,7 +42,7 @@ with DAG(
     task2 = BashOperator(
         task_id='consume_trade_stream',
         bash_command=f'python $HOME/develop/mycrypto/src/python_scripts/{EXCHANGE}/'
-        f'{EXCHANGE}_clickhouse.py '
+        f'{EXCHANGE}_clickhouse2.py '
         '--table binance_trade_data_stream '
         f'--endpoint {ENDPOINT} '
         f'-b {BATCH_SIZE} '

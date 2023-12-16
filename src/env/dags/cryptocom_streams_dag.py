@@ -31,7 +31,7 @@ with DAG(
     task1 = BashOperator(
         task_id='consume_trade_stream',
         bash_command=f'python $HOME/develop/mycrypto/src/python_scripts/{EXCHANGE}/'
-        f'{EXCHANGE}_clickhouse.py '
+        f'{EXCHANGE}_clickhouse2.py '
         '--table cryptocom_trade_data_stream '
         f'--endpoint {ENDPOINT} '
         f'-b {BATCH_SIZE} '
