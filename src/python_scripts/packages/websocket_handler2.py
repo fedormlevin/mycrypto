@@ -8,7 +8,7 @@ import threading
 class WebSocketClient:
     # DF_LIST = []
 
-    def __init__(self, queue, endpoint, payload, stop_flag):
+    def __init__(self, queue, endpoint, payload):
         self.queue = queue
         self.endpoint = endpoint
         self.payload = payload

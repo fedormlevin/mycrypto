@@ -4,6 +4,9 @@ from datetime import datetime
 import argparse
 import pandas as pd
 import sys
+from packages.market_data_handler import MDProcessor
+import threading
+import time
 
 
 def stop_script(signum, frame):
@@ -51,24 +54,32 @@ def load_params_df(csv_path, table_name):
     return params_df[params_df["table_name"] == table_name]
 
 
-def flush_to_ch(df, ch_table, ch_schema):
-    client = Client("localhost", user='default', password='myuser')
+def run_market_data_processor(client, preprocessing_queue, db_queue, batch_size, tbl,
+                              orig_schema, stop_after):
 
-    df = df.apply(pd.to_numeric, errors="ignore")
-    df = df[ch_schema]
+    md_handler = MDProcessor()
 
-    now_utc = datetime.utcnow()
-    df["date"] = now_utc.date()
+    ws_thread = threading.Thread(target=client.run)
+    ws_thread.start()
 
-    epoch = datetime.utcfromtimestamp(0)
-    microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
-    df["insert_time"] = int(microseconds_since_epoch)
+    ps_thread = threading.Thread(
+        target=md_handler.prepare_data, args=(preprocessing_queue, db_queue, batch_size)
+    )
+    ps_thread.start()
 
-    if not first_batch_flushed:
-        logging.info(f"Dumping batch of {len(df_list)}")
-        first_batch_flushed = True
-        
-    client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())
-    total_records_flushed += len(df_list)
-    df_list = []
-    return df_list
+    db_thread = threading.Thread(
+        target=md_handler.flush_to_clickhouse, args=(db_queue, orig_schema, tbl)
+    )
+    db_thread.start()
+
+    time.sleep(stop_after)
+
+    client.stop()
+    preprocessing_queue.put("POISON_PILL")
+
+    ws_thread.join()
+    ps_thread.join()
+    db_thread.join()
+
+    logging.info(f"Records processed: {md_handler.batches_processed}")
+    logging.info(f"N inserts: {md_handler.n_inserts}")

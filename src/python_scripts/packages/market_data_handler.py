@@ -24,7 +24,8 @@ class MDProcessor:
                     db_queue.put("POISON_PILL")
                 break
 
-            dict_list.extend(data)
+            if data:
+                dict_list.extend(data)
 
             if len(dict_list) > batch_size:
                 db_queue.put(dict_list)

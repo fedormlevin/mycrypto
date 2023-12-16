@@ -2,16 +2,11 @@
 
 import os
 from packages.websocket_handler2 import WebSocketClient
-from packages.market_data_handler import MDProcessor
 from packages import utils
 import logging
-from datetime import datetime
-import argparse
 import pandas as pd
 import json
-import threading
 from queue import Queue
-import time
 
 
 class CryptocomWebsocketClient(WebSocketClient):
@@ -63,41 +58,25 @@ def main():
         "method": "subscribe",
         "params": {"channels": [f"{channel}.{pair}"]},  # this needs to be changed
     }
-
+    
     preprocessing_queue = Queue()
     db_queue = Queue()
-
+    
     client = CryptocomWebsocketClient(
         queue=preprocessing_queue,
         endpoint=endpoint,
         payload=payload,
     )
-    md_handler = MDProcessor()
-
-    ws_thread = threading.Thread(target=client.run)
-    ws_thread.start()
-
-    ps_thread = threading.Thread(
-        target=md_handler.prepare_data, args=(preprocessing_queue, db_queue, batch_size)
+    
+    utils.run_market_data_processor(
+        client=client,
+        preprocessing_queue=preprocessing_queue,
+        db_queue=db_queue,
+        batch_size=batch_size,
+        tbl=tbl,
+        orig_schema=orig_schema.keys(),
+        stop_after=args.stop_after
     )
-    ps_thread.start()
-
-    db_thread = threading.Thread(
-        target=md_handler.flush_to_clickhouse, args=(db_queue, orig_schema.keys(), tbl)
-    )
-    db_thread.start()
-
-    time.sleep(args.stop_after)
-
-    client.stop()
-    preprocessing_queue.put("POISON_PILL")
-
-    ws_thread.join()
-    ps_thread.join()
-    db_thread.join()
-
-    logging.info(f"Records processed: {md_handler.batches_processed}")
-    logging.info(f"N inserts: {md_handler.n_inserts}")
 
 
 if __name__ == "__main__":
