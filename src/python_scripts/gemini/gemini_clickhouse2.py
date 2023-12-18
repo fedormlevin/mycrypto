@@ -7,6 +7,7 @@ from packages import utils
 import pandas as pd
 import json
 from queue import Queue
+from packages.market_data_handler import MDProcessor
 
 
 class GeminiWebsocketClient(WebSocketClient):
@@ -97,8 +98,11 @@ def main():
         payload='',
     )
     
+    md_handler = MDProcessor()
+    
     utils.run_market_data_processor(
         client=client,
+        md_handler=md_handler,
         preprocessing_queue=preprocessing_queue,
         db_queue=db_queue,
         batch_size=batch,

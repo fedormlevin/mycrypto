@@ -11,6 +11,7 @@ from packages import utils
 import pandas as pd
 import json
 from queue import Queue
+from packages.market_data_handler import MDProcessor
 
 
 def sign(str_to_sign, secret):
@@ -26,12 +27,87 @@ def timestamp_and_sign(message, channel, products=[]):
     return message
 
 
-class CoinbaseWebsocketClient(WebSocketClient):
+class CoinbaseWebsocketClientTopOfBook(WebSocketClient):
+    def on_message(self, ws, message):
+        message_dict = parse_top_of_book_msg(message, self.first_message)
+        return super().on_message(ws, message_dict)
+
+
+class CoinbaseWebsocketClientTrades(WebSocketClient):
     def on_message(self, ws, message):
         message_dict = parse_market_trades_msg(message)
         return super().on_message(ws, message_dict)
 
 
+def get_top_of_book(df):
+    df['price_level'] = df['price_level'].astype(float)
+    smallest_bid = df[(df['side'] == 'bid')&(df['new_quantity'] != 0)].nsmallest(1, 'price_level')
+    highest_ask = df[(df['side'] == 'ask')&(df['new_quantity'] != 0)].nlargest(1, 'price_level')
+    return pd.concat([smallest_bid, highest_ask])
+
+
+class MDProcessorCoinbaseTopOfBook(MDProcessor):
+    def __init__(self):
+        self.batches_processed = 0
+        self.n_inserts = 0
+        self.topofbook_state = pd.DataFrame()
+
+    def prepare_data(self, processing_queue, db_queue, batch_size):
+        dict_list = []
+
+        while True:
+            data = processing_queue.get()
+            processing_queue.task_done()
+            
+            if self.topofbook_state.empty:
+                df = get_top_of_book(data)
+                self.topofbook_state = df
+            else:
+                break  # just for now
+                
+
+            if data == "POISON_PILL":
+                logging.info("Stop flag in processing_queue")
+                
+                
+                if dict_list:
+                    db_queue.put(dict_list)
+                    
+                db_queue.put("POISON_PILL")
+                break
+
+            if data:
+                dict_list.extend(data)
+
+            if len(dict_list) > batch_size:
+                db_queue.put(dict_list)
+
+                dict_list = []
+    
+
+
+# think how to reduce ammount of code for the 2 functions below
+def parse_top_of_book_msg(msg):
+    message = json.loads(msg)
+    # print(message)
+    # logging.info(message)
+    if message["channel"] == "l2_data":
+        # print('message', message)
+        book_dict = message["events"][0]["updates"]
+        if book_dict:
+            book_df = pd.DataFrame(book_dict)
+            # print('trades dict', trades_dict)
+            book_df["channel"] = message["channel"]
+            book_df["timestamp"] = message["timestamp"]
+            book_df["sequence_num"] = message["sequence_num"]
+            
+
+            for col in ["event_time", "timestamp"]:
+                book_df[col] = pd.to_datetime(book_df[col])
+                
+            return book_df
+    
+    
 def parse_market_trades_msg(msg):
     message = json.loads(msg)
     # print(message)
@@ -50,8 +126,8 @@ def parse_market_trades_msg(msg):
             for col in ["time", "timestamp"]:
                 trades_df[col] = pd.to_datetime(trades_df[col])
                 
-        list_of_dicts = trades_df.to_dict(orient='records')
-        return list_of_dicts
+            list_of_dicts = trades_df.to_dict(orient='records')
+            return list_of_dicts
 
 
 def main():
@@ -91,20 +167,31 @@ def main():
     preprocessing_queue = Queue()
     db_queue = Queue()
     
-    client = CoinbaseWebsocketClient(
-        queue=preprocessing_queue,
-        endpoint=endpoint,
-        payload=payload,
-    )
+    if tbl=='coinbase_market_trades_stream':
+        client = CoinbaseWebsocketClientTrades(
+            queue=preprocessing_queue,
+            endpoint=endpoint,
+            payload=payload,
+        )
+    else:
+        client = CoinbaseWebsocketClientTopOfBook(
+            queue=preprocessing_queue,
+            endpoint=endpoint,
+            payload=payload,
+        )
+        
+    md_handler = MDProcessorCoinbaseTopOfBook()
     
     utils.run_market_data_processor(
         client=client,
+        md_handler=md_handler,
         preprocessing_queue=preprocessing_queue,
         db_queue=db_queue,
         batch_size=batch,
         tbl=tbl,
         orig_schema=orig_schema.keys(),
-        stop_after=args.stop_after
+        stop_after=args.stop_after,
+        test=args.test
     )
 
 

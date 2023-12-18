@@ -4,7 +4,7 @@ from datetime import datetime
 import argparse
 import pandas as pd
 import sys
-from packages.market_data_handler import MDProcessor
+
 import threading
 import time
 
@@ -41,6 +41,7 @@ def setup_args():
     parser.add_argument("-b", "--batch-size", type=int, required=True)
     parser.add_argument("--log-name", type=str, required=True, default='log_name')
     parser.add_argument("--stop-after", type=int, required=True, default=86400)  # 24 hrs
+    parser.add_argument("-t", "--test", required=False, action='store_true', default=False) 
     
     args = parser.parse_args()
     setup_logging(args.log_name)
@@ -54,10 +55,10 @@ def load_params_df(csv_path, table_name):
     return params_df[params_df["table_name"] == table_name]
 
 
-def run_market_data_processor(client, preprocessing_queue, db_queue, batch_size, tbl,
-                              orig_schema, stop_after):
+def run_market_data_processor(client, md_handler, preprocessing_queue, db_queue, batch_size, tbl,
+                              orig_schema, stop_after, test=False):
 
-    md_handler = MDProcessor()
+    # md_handler = MDProcessor()
 
     ws_thread = threading.Thread(target=client.run)
     ws_thread.start()
@@ -68,7 +69,7 @@ def run_market_data_processor(client, preprocessing_queue, db_queue, batch_size,
     ps_thread.start()
 
     db_thread = threading.Thread(
-        target=md_handler.flush_to_clickhouse, args=(db_queue, orig_schema, tbl)
+        target=md_handler.flush_to_clickhouse, args=(db_queue, orig_schema, tbl, test)
     )
     db_thread.start()
 

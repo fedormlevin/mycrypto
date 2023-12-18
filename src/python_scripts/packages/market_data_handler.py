@@ -34,7 +34,7 @@ class MDProcessor:
 
                 dict_list = []
 
-    def flush_to_clickhouse(self, db_queue, ch_schema, ch_table):
+    def flush_to_clickhouse(self, db_queue, ch_schema, ch_table, test):
         while True:
             data = db_queue.get()
             db_queue.task_done()
@@ -58,11 +58,14 @@ class MDProcessor:
             if self.batches_processed < 1:
                 logging.info(f"Dumping 1st batch of len {len(df)}")
 
-            client = Client("localhost", user="default", password="myuser")
-            try:
-                client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())
-            except Exception as e:
-                logging.error(f'Clickhouse exception: {e}')
-                
+            if not test:
+                client = Client("localhost", user="default", password="myuser")
+                try:
+                    client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())
+                except Exception as e:
+                    logging.error(f'Clickhouse exception: {e}')
+                    
+            else:
+                logging.info('Test run, not inserting to DB')
             self.batches_processed += len(df)
             self.n_inserts += 1
