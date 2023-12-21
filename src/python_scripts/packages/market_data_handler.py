@@ -44,21 +44,22 @@ class MDProcessor:
                 break
 
             df = pd.DataFrame(data)
-
-            df = df.apply(pd.to_numeric, errors="ignore")
-            df = df[ch_schema]
-
-            now_utc = datetime.utcnow()
-            df["date"] = now_utc.date()
-
-            epoch = datetime.utcfromtimestamp(0)
-            microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
-            df["insert_time"] = int(microseconds_since_epoch)
-
-            if self.batches_processed < 1:
-                logging.info(f"Dumping 1st batch of len {len(df)}")
-
             if not test:
+                
+                df = df.apply(pd.to_numeric, errors="ignore")
+                df = df[ch_schema]
+
+                now_utc = datetime.utcnow()
+                df["date"] = now_utc.date()
+
+                epoch = datetime.utcfromtimestamp(0)
+                microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
+                df["insert_time"] = int(microseconds_since_epoch)
+
+                if self.batches_processed < 1:
+                    logging.info(f"Dumping 1st batch of len {len(df)}")
+
+                
                 client = Client("localhost", user="default", password="myuser")
                 try:
                     client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())

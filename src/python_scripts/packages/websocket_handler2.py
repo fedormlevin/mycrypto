@@ -16,6 +16,7 @@ class WebSocketClient:
         self.first_message = True
 
     def on_message(self, ws, message):
+        # if message:  # will fail if message is df
         self.queue.put(message)
         
         if self.first_message:

@@ -6,7 +6,7 @@ import logging
 from packages import utils
 import json
 from queue import Queue
-
+from packages.market_data_handler import MDProcessor
 
 class BinanceWebsocketClient(WebSocketClient):
     def on_message(self, ws, message):
@@ -59,8 +59,11 @@ def main():
         payload=payload,
     )
     
+    md_handler = MDProcessor()
+    
     utils.run_market_data_processor(
         client=client,
+        md_handler=md_handler,
         preprocessing_queue=preprocessing_queue,
         db_queue=db_queue,
         batch_size=batch_size,
