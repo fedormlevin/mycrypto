@@ -43,9 +43,9 @@ class CoinbaseWebsocketClientTrades(WebSocketClient):
 
 def get_top_of_book(df):
     # df['price_level'] = df['price_level'].astype(float)
-    smallest_bid = df[(df['side'] == 'bid')&(df['new_quantity'] != 0)].nlargest(1, 'price_level')
-    highest_ask = df[(df['side'] == 'offer')&(df['new_quantity'] != 0)].nsmallest(1, 'price_level')
-    frame = pd.concat([smallest_bid, highest_ask])
+    highest_bid = df[(df['side'] == 'bid')&(df['new_quantity'] != 0)].nlargest(1, 'price_level')
+    smallest_ask = df[(df['side'] == 'offer')&(df['new_quantity'] != 0)].nsmallest(1, 'price_level')
+    frame = pd.concat([highest_bid, smallest_ask])
     frame['sequence_num'] = frame['sequence_num'].astype(int)
     return frame
 
@@ -66,28 +66,28 @@ def transform_to_db_view(old_df, new_df):
             "OfferSz": new_ask["new_quantity"],
             
         })
-        return pd.DataFrame(history_data)
+        res = pd.DataFrame(history_data)
+        for col in ['channel', 'timestamp', 'sequence_num', 'product_id']:
+            res[col] = new_bid[col]
+        return res
+    
     old_bid = old_df[old_df["side"] == "bid"].iloc[0]
     old_ask = old_df[old_df["side"] == "offer"].iloc[0]
 
     # Determining which event (bid or ask) occurred first in the 'new' DataFrame
     first_update_is_bid = new_bid["event_time"] < new_ask["event_time"]
 
-  
-    
-    
-
-
     # If the first update in 'new' is a bid
     if first_update_is_bid:
         print('first is bid')
-        if new_bid["event_time"] != old_bid["event_time"]:
+        if new_bid["event_time"] != old_bid["event_time"] and new_bid["price_level"] != old_bid["price_level"]:
             history_data.append({
                 "event_time": new_bid["event_time"],
                 "BidPx": new_bid["price_level"],
                 "BidSz": new_bid["new_quantity"],
                 "OfferPx": old_ask["price_level"],
                 "OfferSz": old_ask["new_quantity"],
+                "sequence_num": new_bid["sequence_num"],
                 
             })
         history_data.append({
@@ -96,17 +96,19 @@ def transform_to_db_view(old_df, new_df):
             "BidSz": new_bid["new_quantity"],
             "OfferPx": new_ask["price_level"],
             "OfferSz": new_ask["new_quantity"],
+            "sequence_num": new_ask["sequence_num"],
             
         })
     else:
         print('first is ask')
-        if new_ask["event_time"] != new_ask["event_time"]:
+        if new_ask["event_time"] != new_ask["event_time"] and new_ask["price_level"] != new_ask["price_level"]:
             history_data.append({
                 "event_time": new_ask["event_time"],
                 "BidPx": old_bid["price_level"],
                 "BidSz": old_bid["new_quantity"],
                 "OfferPx": new_ask["price_level"],
                 "OfferSz": new_ask["new_quantity"],
+                "sequence_num": new_ask["sequence_num"],
                 
             })
         history_data.append({
@@ -115,11 +117,12 @@ def transform_to_db_view(old_df, new_df):
             "BidSz": new_bid["new_quantity"],
             "OfferPx": new_ask["price_level"],
             "OfferSz": new_ask["new_quantity"],
+            "sequence_num": new_bid["sequence_num"],
             
         })
         
     res = pd.DataFrame(history_data)
-    for col in ['channel', 'timestamp', 'sequence_num', 'product_id']:
+    for col in ['channel', 'timestamp', 'product_id']:
         res[col] = new_bid[col]
     
     return res.drop_duplicates()
@@ -160,6 +163,7 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
 
                 topofbook_upd = data
                 if isinstance(data, pd.DataFrame):
+                    
                     if not topofbook_upd.empty:
                         status_upd = self.topofbook_state.merge(topofbook_upd, on=['side', 'price_level'], how='outer', suffixes=('', '_df2'))
                     
@@ -180,6 +184,7 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
             
             print('trans order book')
             print(topofbook_transformed)
+
             topofbook_transformed = topofbook_transformed.to_dict(orient='records')
             
         
@@ -222,9 +227,11 @@ def parse_top_of_book_msg(msg):
             for col in ["event_time", "timestamp"]:
                 book_df[col] = pd.to_datetime(book_df[col])
                 
-            book_df['price_level'] = book_df['price_level'].astype(float).round(1)
+            book_df['price_level'] = book_df['price_level'].astype(float).round(2)
             book_df['new_quantity'] = book_df['new_quantity'].astype(float)
             book_df['sequence_num'] = book_df['sequence_num'].astype(int)
+            book_df['product_id'] = book_df['product_id'].astype(str)
+            book_df['channel'] = book_df['channel'].astype(str)
             
             book_df = book_df[book_df['price_level'] > 0]
 
@@ -271,7 +278,7 @@ def main():
     params_df = params_df[params_df["table_name"] == tbl]
     channel = params_df["channel"].values[0]
     product_ids = params_df["product_ids"].values[0]
-    product_ids_list = result = [s.strip() for s in product_ids.split(",")]
+    product_ids_list = [s.strip() for s in product_ids.split(",")]
 
     col_names_dir = params_df["colnames_json"].values[0]
     col_names_dir = os.path.expanduser(col_names_dir)

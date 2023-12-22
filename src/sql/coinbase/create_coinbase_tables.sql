@@ -14,16 +14,18 @@ CREATE TABLE coinbase_market_trades_stream
 ) ENGINE = MergeTree()
 ORDER BY (time, symbol);
 
+
 CREATE TABLE coinbase_top_of_book_stream
 (
     symbol String,
-    side String,
     event_time UInt64,
-    price_level Float64,
-    new_quantity Float64,
+    bid_px Float64,
+    bid_sz Float64,
+    offer_px Float64,
+    offer_sz Float64,
+    sequence_num UInt64,
     channel String,
     timestamp UInt64,
-    sequence_num UInt64,
     date Date,
     insert_time UInt64
 ) ENGINE = MergeTree()

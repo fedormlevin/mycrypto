@@ -1,1 +1,1 @@
-{"product_id": "product_id", "side":"side", "event_time": "event_time", "price_level": "price_level", "new_quantity": "new_quantity",  "channel": "channel", "timestamp": "timestamp", "sequence_num": "sequence_num"}
+{"product_id": "product_id", "event_time": "event_time", "BidPx": "BidPx", "BidSz": "BidSz", "OfferPx": "OfferPx", "OfferSz": "OfferSz", "sequence_num": "sequence_num", "channel": "channel", "timestamp": "timestamp"}
