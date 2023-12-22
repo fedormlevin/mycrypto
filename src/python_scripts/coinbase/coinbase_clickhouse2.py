@@ -296,20 +296,21 @@ def main():
     preprocessing_queue = Queue()
     db_queue = Queue()
     
-    if tbl=='coinbase_market_trades_stream':
+    if tbl!='coinbase_top_of_book_stream':
         client = CoinbaseWebsocketClientTrades(
             queue=preprocessing_queue,
             endpoint=endpoint,
             payload=payload,
         )
+        md_handler = MDProcessor()
+        
     else:
         client = CoinbaseWebsocketClientTopOfBook(
             queue=preprocessing_queue,
             endpoint=endpoint,
             payload=payload,
         )
-        
-    md_handler = MDProcessorCoinbaseTopOfBook()
+        md_handler = MDProcessorCoinbaseTopOfBook()
     
     utils.run_market_data_processor(
         client=client,

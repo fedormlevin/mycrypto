@@ -40,7 +40,13 @@ with DAG(
     )
     
     task2 = BashOperator(
-        task_id='dummy_task',
-        bash_command='echo second stream '
+        task_id='consume_top_of_book_stream',
+        bash_command=f'python $HOME/develop/mycrypto/src/python_scripts/{EXCHANGE}/'
+        f'{EXCHANGE}_clickhouse2.py '
+        '--table coinbase_top_of_book_stream '
+        f'--endpoint {ENDPOINT} '
+        f'-b {BATCH_SIZE} '
+        f'--log-name {EXCHANGE}_topofbook '
+        f'--stop-after {STOP_AFTER} '
     )
     
