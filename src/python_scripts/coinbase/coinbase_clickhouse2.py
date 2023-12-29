@@ -223,8 +223,8 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
             )
             if not topofbook_transformed.empty:
                 
-                print('topofbook')
-                print(topofbook_transformed)
+                # print('topofbook')
+                # print(topofbook_transformed)
                 
                 topofbook_transformed = topofbook_transformed.to_dict(orient="records")
 
