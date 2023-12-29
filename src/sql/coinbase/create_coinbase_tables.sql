@@ -30,3 +30,5 @@ CREATE TABLE coinbase_top_of_book_stream
     insert_time UInt64
 ) ENGINE = MergeTree()
 ORDER BY (event_time, symbol);
+
+TRUNCATE TABLE coinbase_top_of_book_stream

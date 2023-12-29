@@ -7,6 +7,7 @@ import sys
 
 import threading
 import time
+from clickhouse_driver import Client as cl
 
 
 def stop_script(signum, frame):
@@ -84,3 +85,23 @@ def run_market_data_processor(client, md_handler, preprocessing_queue, db_queue,
 
     logging.info(f"Records processed: {md_handler.batches_processed}")
     logging.info(f"N inserts: {md_handler.n_inserts}")
+    
+    
+def run_clickhouse_query(host, user, psw, db, query):
+
+
+    client = cl(host, user=user, password=psw, database=db)
+
+    # Execute a query
+    result = client.execute(query, with_column_types=True)
+
+    # Split the results and column types
+    rows, columns = result
+
+    # Extract column names
+    column_names = [column[0] for column in columns]
+
+    # Combine column names and row data to get a list of dictionaries
+    data_with_column_names = [dict(zip(column_names, row)) for row in rows]
+
+    return pd.DataFrame(data_with_column_names)

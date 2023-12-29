@@ -7,6 +7,8 @@ import hmac
 import hashlib
 from dotenv import load_dotenv
 import time
+from decimal import Decimal
+import math
 from packages import utils
 import pandas as pd
 import json
@@ -58,8 +60,12 @@ def get_top_of_book(df):
 def transform_to_db_view(old_df, new_df):
     history_data = []
     # Extracting bid and ask rows from both DataFrames
-    new_bid = new_df[new_df["side"] == "bid"].iloc[0]
-    new_ask = new_df[new_df["side"] == "offer"].iloc[0]
+    try:
+        new_bid = new_df[new_df["side"] == "bid"].iloc[0]
+        new_ask = new_df[new_df["side"] == "offer"].iloc[0]
+    except Exception as e:
+        logging.error(f"Exception in transform_to_db_view: {e}")
+        return pd.DataFrame()
 
     if old_df.empty:
         history_data.append(
@@ -162,6 +168,10 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
                 db_queue.put("POISON_PILL")
                 break
 
+            if isinstance(data, pd.DataFrame):
+                if not data.empty:
+                    data = aggregate_quantity_decimal(data, agg_level=1)
+
             if self.topofbook_state.empty:
                 self.topofbook_state = get_top_of_book(data)
                 self.topofbook_state["event_time"] = self.topofbook_state["timestamp"]
@@ -211,31 +221,115 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
             topofbook_transformed = transform_to_db_view(
                 self.topofbook_prev_state, self.topofbook_state
             )
+            if not topofbook_transformed.empty:
+                
+                print('topofbook')
+                print(topofbook_transformed)
+                
+                topofbook_transformed = topofbook_transformed.to_dict(orient="records")
 
-            topofbook_transformed = topofbook_transformed.to_dict(orient="records")
+                df1_sorted = self.topofbook_prev_state.sort_values(
+                    by=self.topofbook_prev_state.columns.tolist()
+                ).reset_index(drop=True)
+                df2_sorted = self.topofbook_state.sort_values(
+                    by=self.topofbook_state.columns.tolist()
+                ).reset_index(drop=True)
+                are_identical = df1_sorted.equals(df2_sorted)
 
-            df1_sorted = self.topofbook_prev_state.sort_values(
-                by=self.topofbook_prev_state.columns.tolist()
-            ).reset_index(drop=True)
-            df2_sorted = self.topofbook_state.sort_values(
-                by=self.topofbook_state.columns.tolist()
-            ).reset_index(drop=True)
-            are_identical = df1_sorted.equals(df2_sorted)
+                # making sure there was a change in top of book before putting to db queue
+                if topofbook_transformed and not are_identical:
+                    dict_list.extend(topofbook_transformed)
+                    self.topofbook_prev_state = self.topofbook_state
 
-            # making sure there was a change in top of book before putting to db queue
-            if topofbook_transformed and not are_identical:
-                dict_list.extend(topofbook_transformed)
-                self.topofbook_prev_state = self.topofbook_state
+                if len(dict_list) > batch_size:
+                    db_queue.put(dict_list)
 
-            if len(dict_list) > batch_size:
-                db_queue.put(dict_list)
+                    dict_list = []
 
-                dict_list = []
+
+# def aggregate_quantity_decimal(df, agg_level=1):
+#     # Define a custom rounding function based on side
+#     def custom_round(price, side):
+#         if side == 'bid':
+#             return np.ceil(price / agg_level) * agg_level
+#         else:  # 'ask'
+#             return np.floor(price / agg_level) * agg_level
+
+#     # Apply the custom rounding to the price_level column
+#     df['price_level'] = df.apply(lambda x: custom_round(x['price_level'], x['side']), axis=1)
+
+#     aggregated_df = df.groupby(['side', 'price_level', 'channel', 'timestamp', 'product_id']).agg({
+#         'new_quantity': 'sum',
+#         'event_time': 'max',
+#         'sequence_num': 'max'
+#     }).reset_index()
+#     return aggregated_df
+
+
+def aggregate_quantity_decimal(df, agg_level=Decimal(1)):
+    bid = df[df["side"] == "bid"]["price_level"].max() - 100
+    offer = df[df["side"] == "offer"]["price_level"].min() + 100
+    df = df[df["price_level"].between(bid, offer)]
+
+    agg_lst = []
+    for side in ["bid", "offer"]:
+        levels_df = df[df["side"] == side].copy()
+        if side == "bid":
+            right = False
+
+            def label_func(x):
+                return x.left
+
+        else:
+            right = True
+
+            def label_func(x):
+                return x.right
+
+        min_level = (
+            math.floor(Decimal(min(levels_df["price_level"])) / agg_level - 1)
+            * agg_level
+        )
+        max_level = (
+            math.ceil(Decimal(max(levels_df["price_level"])) / agg_level + 1)
+            * agg_level
+        )
+
+        level_bounds = [
+            float(min_level + agg_level * x)
+            for x in range(int((max_level - min_level) / agg_level) + 1)
+        ]
+
+        levels_df["bin"] = pd.cut(
+            levels_df["price_level"], bins=level_bounds, precision=10, right=right
+        )
+
+        # levels_df = levels_df.groupby('bin').agg(qty=('new_quantity', 'sum')).reset_index()
+        levels_df = (
+            levels_df.groupby(["bin", "channel", "product_id"], observed=False)
+            .agg(
+                {
+                    "new_quantity": "sum",
+                    "event_time": "max",
+                    "timestamp": "max",
+                    "sequence_num": "max",
+                }
+            )
+            .reset_index()
+        )
+
+        levels_df["price_level"] = levels_df.bin.apply(label_func).astype(float)
+
+        levels_df["side"] = side
+        levels_df = levels_df.drop(columns="bin")
+        agg_lst.append(levels_df)
+        # levels_df = levels_df[['px', 'qty']]
+
+    return pd.concat(agg_lst)
 
 
 # think how to reduce ammount of code for the 2 functions below
 def parse_top_of_book_msg(msg):
-    i = 0
     message = json.loads(msg)
 
     if message.get("channel") == "l2_data":
@@ -251,13 +345,11 @@ def parse_top_of_book_msg(msg):
             for col in ["event_time", "timestamp"]:
                 book_df[col] = pd.to_datetime(book_df[col])
 
-            book_df["price_level"] = book_df["price_level"].astype(float).round(2)
+            book_df["price_level"] = book_df["price_level"].astype(float)
             book_df["new_quantity"] = book_df["new_quantity"].astype(float)
             book_df["sequence_num"] = book_df["sequence_num"].astype(int)
             book_df["product_id"] = book_df["product_id"].astype(str)
             book_df["channel"] = book_df["channel"].astype(str)
-
-            book_df = book_df[book_df["price_level"] > 0]
 
             return book_df
     else:

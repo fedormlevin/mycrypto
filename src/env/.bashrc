@@ -133,9 +133,11 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 
-conda activate crypto
-
+# airflow
 export AIRFLOW_HOME=~/airflow
-export PYTHONPATH="${PYTHONPATH}:${HOME}/develop/mycrypto/src/python_scripts"
+export AIRFLOW__CORE__DEFAULT_TASK_EXECUTION_TIMEOUT=46800  # 13 hours
 
+# python
+export PYTHONPATH="${PYTHONPATH}:${HOME}/develop/mycrypto/src/python_scripts"
+conda activate crypto
 alias juplab='nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser > jupyterlab.out 2>&1 &'
