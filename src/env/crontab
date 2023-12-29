@@ -24,3 +24,4 @@
 
 */5 * * * * bash -l -c $HOME/develop/mycrypto/src/shell_scripts/check_airflow.sh
 55 23 * * * bash -l -c $HOME/develop/mycrypto/src/shell_scripts/stop_airflow.sh
+50 23 * * * bash -l -c "python $HOME/develop/mycrypto/src/python_scripts/infra/kill_running_dags.py"
