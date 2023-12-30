@@ -1,4 +1,4 @@
 table_name,pair,subscription,colnames_json
-kraken_trade_data_stream,XBT/USD,trade,~/develop/mycrypto/refdata/kraken/kraken_trades_colnames.json
-kraken_ticker_stream,XBT/USD,ticker,~/develop/mycrypto/refdata/kraken/kraken_ticker_colnames.json
-kraken_ohlc_stream,XBT/USD,ohlc,~/develop/mycrypto/refdata/kraken/kraken_ohlc_colnames.json
+kraken_trade_data_stream,"XBT/USD,BTC/USDT,DOGE/BTC",trade,~/develop/mycrypto/refdata/kraken/kraken_trades_colnames.json
+kraken_ticker_stream,"XBT/USD,BTC/USDT,DOGE/BTC",ticker,~/develop/mycrypto/refdata/kraken/kraken_ticker_colnames.json
+kraken_ohlc_stream,"XBT/USD,BTC/USDT,DOGE/BTC",ohlc,~/develop/mycrypto/refdata/kraken/kraken_ohlc_colnames.json

@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 from clickhouse_driver import Client as cl
+from clickhouse_driver import errors
 
 
 def stop_script(signum, frame):
@@ -93,7 +94,16 @@ def run_clickhouse_query(host, user, psw, db, query):
     client = cl(host, user=user, password=psw, database=db)
 
     # Execute a query
-    result = client.execute(query, with_column_types=True)
+    try:
+        # print(f'running query: {query}')
+        result = client.execute(query, with_column_types=True)
+    except errors.Error as e:
+        # Handle any errors that occur during the query execution
+        print(f"An error occurred: {e}")
+    finally:
+        # Ensure the connection is closed
+        client.disconnect()
+
 
     # Split the results and column types
     rows, columns = result

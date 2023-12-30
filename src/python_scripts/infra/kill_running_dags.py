@@ -34,9 +34,9 @@ def kill_matching_processes(dag_id):
             pid = columns[1]
             try:
                 # Kill the process
-                command = f"kill {pid}"
+                command = f"kill -9 {pid}"
                 logging.info(f'Executing: {command}')
-                # subprocess.run(command, shell=True)
+                subprocess.run(command, shell=True)
                 logging.info(f"Killed process {pid} for DAG {dag_id}")
                 # Sleep for 1 second between kills
                 time.sleep(1)

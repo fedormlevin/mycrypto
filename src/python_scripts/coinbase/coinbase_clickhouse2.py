@@ -274,58 +274,63 @@ def aggregate_quantity_decimal(df, agg_level=Decimal(1)):
     agg_lst = []
     for side in ["bid", "offer"]:
         levels_df = df[df["side"] == side].copy()
-        if side == "bid":
-            right = False
+        if not levels_df.empty:
+            if side == "bid":
+                right = False
 
-            def label_func(x):
-                return x.left
+                def label_func(x):
+                    return x.left
 
-        else:
-            right = True
+            else:
+                right = True
 
-            def label_func(x):
-                return x.right
+                def label_func(x):
+                    return x.right
 
-        min_level = (
-            math.floor(Decimal(min(levels_df["price_level"])) / agg_level - 1)
-            * agg_level
-        )
-        max_level = (
-            math.ceil(Decimal(max(levels_df["price_level"])) / agg_level + 1)
-            * agg_level
-        )
-
-        level_bounds = [
-            float(min_level + agg_level * x)
-            for x in range(int((max_level - min_level) / agg_level) + 1)
-        ]
-
-        levels_df["bin"] = pd.cut(
-            levels_df["price_level"], bins=level_bounds, precision=10, right=right
-        )
-
-        # levels_df = levels_df.groupby('bin').agg(qty=('new_quantity', 'sum')).reset_index()
-        levels_df = (
-            levels_df.groupby(["bin", "channel", "product_id"], observed=False)
-            .agg(
-                {
-                    "new_quantity": "sum",
-                    "event_time": "max",
-                    "timestamp": "max",
-                    "sequence_num": "max",
-                }
+            min_level = (
+                math.floor(Decimal(min(levels_df["price_level"])) / agg_level - 1)
+                * agg_level
             )
-            .reset_index()
-        )
+            max_level = (
+                math.ceil(Decimal(max(levels_df["price_level"])) / agg_level + 1)
+                * agg_level
+            )
 
-        levels_df["price_level"] = levels_df.bin.apply(label_func).astype(float)
+            level_bounds = [
+                float(min_level + agg_level * x)
+                for x in range(int((max_level - min_level) / agg_level) + 1)
+            ]
 
-        levels_df["side"] = side
-        levels_df = levels_df.drop(columns="bin")
-        agg_lst.append(levels_df)
-        # levels_df = levels_df[['px', 'qty']]
+            levels_df["bin"] = pd.cut(
+                levels_df["price_level"], bins=level_bounds, precision=10, right=right
+            )
 
-    return pd.concat(agg_lst)
+            # levels_df = levels_df.groupby('bin').agg(qty=('new_quantity', 'sum')).reset_index()
+            levels_df = (
+                levels_df.groupby(["bin", "channel", "product_id"], observed=False)
+                .agg(
+                    {
+                        "new_quantity": "sum",
+                        "event_time": "max",
+                        "timestamp": "max",
+                        "sequence_num": "max",
+                    }
+                )
+                .reset_index()
+            )
+
+            levels_df["price_level"] = levels_df.bin.apply(label_func).astype(float)
+
+            levels_df["side"] = side
+            levels_df = levels_df.drop(columns="bin")
+            agg_lst.append(levels_df)
+            # levels_df = levels_df[['px', 'qty']]
+        else:
+            continue
+    if agg_lst:
+        return pd.concat(agg_lst)
+    else:
+        return pd.DataFrame()
 
 
 # think how to reduce ammount of code for the 2 functions below
