@@ -3,7 +3,7 @@ import websocket
 import logging
 import time
 import threading
-
+import sys
 
 class WebSocketClient:
     def __init__(self, queue, endpoint, payload):
@@ -16,15 +16,22 @@ class WebSocketClient:
         self.first_message = True
 
     def on_message(self, ws, message):
+
         # if message:  # will fail if message is df
-        if isinstance(message, str):
-            if message=='ERROR':
-                logging.info('Sending ws.close')
-                ws.close()
+        if isinstance(message, tuple):
+            if message[0]=='ERROR':
+                if message[1]['message']=='authentication failure':
+                    logging.error('Closing con')
+                    self.stop()
+                    self.queue.put('POISON_PILL')
+                    sys.exit(0)
+                return
+
         self.queue.put(message)
         
         if self.first_message:
             logging.info('1st message is in processing queue')
+            
             self.first_message = False
             
         if self.stop_event.is_set():

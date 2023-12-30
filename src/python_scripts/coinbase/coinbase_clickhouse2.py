@@ -45,6 +45,7 @@ class CoinbaseWebsocketClientTrades(WebSocketClient):
 
 
 def get_top_of_book(df):
+
     # df['price_level'] = df['price_level'].astype(float)
     highest_bid = df[(df["side"] == "bid") & (df["new_quantity"] != 0)].nlargest(
         1, "price_level"
@@ -360,7 +361,8 @@ def parse_top_of_book_msg(msg):
     else:
         if not message.get("channel"):
             logging.error(f"channel in message is None")
-            return "ERROR"
+            logging.error(message)
+            return ('ERROR', message)
 
 
 def parse_market_trades_msg(msg):
@@ -383,7 +385,7 @@ def parse_market_trades_msg(msg):
     else:
         if not message.get("channel"):
             logging.error(f"channel in message is None")
-            return "ERROR"
+            logging.error(message)
 
 
 def main():
