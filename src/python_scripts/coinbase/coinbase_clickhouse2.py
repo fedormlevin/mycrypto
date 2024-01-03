@@ -45,28 +45,36 @@ class CoinbaseWebsocketClientTrades(WebSocketClient):
 
 
 def get_top_of_book(df):
-
-    # df['price_level'] = df['price_level'].astype(float)
-    highest_bid = df[(df["side"] == "bid") & (df["new_quantity"] != 0)].nlargest(
-        1, "price_level"
-    )
-    smallest_ask = df[(df["side"] == "offer") & (df["new_quantity"] != 0)].nsmallest(
-        1, "price_level"
-    )
-    frame = pd.concat([highest_bid, smallest_ask])
-    frame["sequence_num"] = frame["sequence_num"].astype(int)
-    return frame
+    if not df.empty:
+        # df['price_level'] = df['price_level'].astype(float)
+        highest_bid = df[(df["side"] == "bid") & (df["new_quantity"] != 0)].nlargest(
+            1, "price_level"
+        )
+        smallest_ask = df[
+            (df["side"] == "offer") & (df["new_quantity"] != 0)
+        ].nsmallest(1, "price_level")
+        frame = pd.concat([highest_bid, smallest_ask])
+        frame["sequence_num"] = frame["sequence_num"].astype(int)
+        return frame
+    else:
+        return pd.DataFrame()
 
 
 def transform_to_db_view(old_df, new_df):
     history_data = []
-    # Extracting bid and ask rows from both DataFrames
-    try:
+    if new_df.empty:
+        return pd.DataFrame()
+    elif new_df[new_df["side"] == "bid"].empty:
+        new_bid = old_df[old_df["side"] == "bid"].iloc[0]
+        new_ask = new_df[new_df["side"] == "offer"].iloc[0]
+
+    elif new_df[new_df["side"] == "offer"].empty:
+        new_ask = old_df[old_df["side"] == "offer"].iloc[0]
+        new_bid = new_df[new_df["side"] == "bid"].iloc[0]
+
+    else:
         new_bid = new_df[new_df["side"] == "bid"].iloc[0]
         new_ask = new_df[new_df["side"] == "offer"].iloc[0]
-    except Exception as e:
-        logging.error(f"Exception in transform_to_db_view: {e}")
-        return pd.DataFrame()
 
     if old_df.empty:
         history_data.append(
@@ -152,8 +160,10 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
     def __init__(self):
         self.batches_processed = 0
         self.n_inserts = 0
-        self.topofbook_state = pd.DataFrame()
-        self.topofbook_prev_state = pd.DataFrame()
+        # self.topofbook_state = pd.DataFrame()
+        # self.topofbook_prev_state = pd.DataFrame()
+        self.book_state = pd.DataFrame()
+        self.book_state_prev = pd.DataFrame()
 
     def prepare_data(self, processing_queue, db_queue, batch_size):
         dict_list = []
@@ -173,15 +183,18 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
                 if not data.empty:
                     data = aggregate_quantity_decimal(data, agg_level=1)
 
-            if self.topofbook_state.empty:
-                self.topofbook_state = get_top_of_book(data)
-                self.topofbook_state["event_time"] = self.topofbook_state["timestamp"]
+            # if self.topofbook_state.empty:
+            #     self.topofbook_state = get_top_of_book(data)
+            #     self.topofbook_state["event_time"] = self.topofbook_state["timestamp"]
+            if self.book_state.empty:
+                self.book_state = data
 
             else:
                 topofbook_upd = data
                 if isinstance(data, pd.DataFrame):
                     if not topofbook_upd.empty:
-                        status_upd = self.topofbook_state.merge(
+                        # status_upd = self.topofbook_state.merge(
+                        status_upd = self.book_state.merge(
                             topofbook_upd,
                             on=["side", "price_level"],
                             how="outer",
@@ -213,20 +226,22 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
                                 "product_id_df2",
                             ]
                         )
-                        status_upd = status_upd[status_upd["new_quantity"] != 0]
-                        self.topofbook_state = get_top_of_book(status_upd)
+
+                        self.book_state = status_upd
+                        # self.topofbook_state = get_top_of_book(status_upd)
 
                     else:
                         continue
+
+            self.topofbook_state = get_top_of_book(self.book_state)
+            self.topofbook_prev_state = get_top_of_book(self.book_state_prev)
+
+            self.book_state_prev = self.book_state
 
             topofbook_transformed = transform_to_db_view(
                 self.topofbook_prev_state, self.topofbook_state
             )
             if not topofbook_transformed.empty:
-                
-                # print('topofbook')
-                # print(topofbook_transformed)
-                
                 topofbook_transformed = topofbook_transformed.to_dict(orient="records")
 
                 df1_sorted = self.topofbook_prev_state.sort_values(
@@ -362,7 +377,7 @@ def parse_top_of_book_msg(msg):
         if not message.get("channel"):
             logging.error(f"channel in message is None")
             logging.error(message)
-            return ('ERROR', message)
+            return ("ERROR", message)
 
 
 def parse_market_trades_msg(msg):
