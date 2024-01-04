@@ -43,7 +43,8 @@ def setup_args():
     parser.add_argument("-b", "--batch-size", type=int, required=True)
     parser.add_argument("--log-name", type=str, required=True, default='log_name')
     parser.add_argument("--stop-after", type=int, required=True, default=86400)  # 24 hrs
-    parser.add_argument("-t", "--test", required=False, action='store_true', default=False) 
+    parser.add_argument("-t", "--test", required=False, action='store_true', default=False)
+    parser.add_argument("--heartbeats", required=False, action='store_true', default=False) 
     
     args = parser.parse_args()
     setup_logging(args.log_name)
@@ -86,6 +87,18 @@ def run_market_data_processor(client, md_handler, preprocessing_queue, db_queue,
 
     logging.info(f"Records processed: {md_handler.batches_processed}")
     logging.info(f"N inserts: {md_handler.n_inserts}")
+    
+
+def run_heartbeats(client, stop_after):
+
+    ws_thread = threading.Thread(target=client.run)
+    ws_thread.start()
+
+    time.sleep(stop_after)
+
+    client.stop()
+
+    ws_thread.join()
     
     
 def run_clickhouse_query(host, user, psw, db, query):

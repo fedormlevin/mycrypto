@@ -51,7 +51,7 @@ class WebSocketClient:
         ws.send(json.dumps(self.payload))
 
     def run(self):
-        reconn_after = 10
+        reconn_after = 20
         while not self.stop_event.is_set():
             try:
                 ws = websocket.WebSocketApp(

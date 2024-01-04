@@ -37,6 +37,7 @@ with DAG(
         f'-b {BATCH_SIZE} '
         f'--log-name {EXCHANGE}_trades '
         f'--stop-after {STOP_AFTER} '
+        '--heartbeats '
     )
     
     task2 = BashOperator(

@@ -42,6 +42,15 @@ class CoinbaseWebsocketClientTrades(WebSocketClient):
     def on_message(self, ws, message):
         message_dict = parse_market_trades_msg(message)
         return super().on_message(ws, message_dict)
+    
+    
+class CoinbaseWebsocketClientHB(WebSocketClient):
+
+    def on_message(self, ws, message):
+            
+        if self.stop_event.is_set():
+            logging.info("WS Stop Event is set")
+            ws.close()
 
 
 def get_top_of_book(df):
@@ -241,6 +250,19 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
             topofbook_transformed = transform_to_db_view(
                 self.topofbook_prev_state, self.topofbook_state
             )
+            print('topofbook')
+            print(topofbook_transformed)
+            
+            
+            
+            if topofbook_transformed['BidPx'].values[0]>=topofbook_transformed['OfferPx'].values[0]:
+                
+                logging.error("Bad spread")
+                if dict_list:
+                    db_queue.put(dict_list)
+                db_queue.put("POISON_PILL")
+                break
+            
             if not topofbook_transformed.empty:
                 topofbook_transformed = topofbook_transformed.to_dict(orient="records")
 
@@ -263,23 +285,7 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
                     dict_list = []
 
 
-# def aggregate_quantity_decimal(df, agg_level=1):
-#     # Define a custom rounding function based on side
-#     def custom_round(price, side):
-#         if side == 'bid':
-#             return np.ceil(price / agg_level) * agg_level
-#         else:  # 'ask'
-#             return np.floor(price / agg_level) * agg_level
 
-#     # Apply the custom rounding to the price_level column
-#     df['price_level'] = df.apply(lambda x: custom_round(x['price_level'], x['side']), axis=1)
-
-#     aggregated_df = df.groupby(['side', 'price_level', 'channel', 'timestamp', 'product_id']).agg({
-#         'new_quantity': 'sum',
-#         'event_time': 'max',
-#         'sequence_num': 'max'
-#     }).reset_index()
-#     return aggregated_df
 
 
 def aggregate_quantity_decimal(df, agg_level=Decimal(1)):
@@ -434,6 +440,8 @@ def main():
         "product_ids": product_ids_list,
     }
     payload = timestamp_and_sign(message, channel, product_ids_list)
+    
+
 
     preprocessing_queue = Queue()
     db_queue = Queue()
@@ -465,6 +473,18 @@ def main():
         stop_after=args.stop_after,
         test=args.test,
     )
+    
+    if args.heartbeats:
+        message_hb = {
+            "type": "subscribe",
+            "channel": 'heartbeats',
+            "api_key": os.environ.get("coinbase_api_key"),
+            "product_ids": product_ids_list,
+        }
+        payload_hb = timestamp_and_sign(message_hb, channel, product_ids_list)
+        client_hb = CoinbaseWebsocketClientHB(queue=None, endpoint=endpoint, payload=payload_hb)
+        
+        utils.run_heartbeats(client=client_hb, stop_after=args.stop_after)
 
 
 if __name__ == "__main__":
