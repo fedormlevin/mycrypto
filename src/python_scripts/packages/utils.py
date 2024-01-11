@@ -58,21 +58,35 @@ def load_params_df(csv_path, table_name):
     return params_df[params_df["table_name"] == table_name]
 
 
+def on_exception(args):
+    logging.error(f"Logging uncaught exception: {args.exc_type.__name__}: {args.exc_value} in thread {args.thread.name}")
+    sys.exit(1)
+    
+    
+threading.excepthook = on_exception
+
+
 def run_market_data_processor(client, md_handler, preprocessing_queue, db_queue, batch_size, tbl,
-                              orig_schema, stop_after, test=False):
+                              orig_schema, stop_after, test=False, client_hb=False):
 
     # md_handler = MDProcessor()
-
-    ws_thread = threading.Thread(target=client.run)
-    ws_thread.start()
-
+    
     ps_thread = threading.Thread(
         target=md_handler.prepare_data, args=(preprocessing_queue, db_queue, batch_size)
     )
     ps_thread.start()
 
+    ws_thread = threading.Thread(target=client.run, daemon=True)
+    ws_thread.start()
+    
+    if not isinstance(client_hb, bool):
+        ws_hb_thread = threading.Thread(target=client_hb.run, daemon=True)
+        ws_hb_thread.start()
+
+
+
     db_thread = threading.Thread(
-        target=md_handler.flush_to_clickhouse, args=(db_queue, orig_schema, tbl, test)
+        target=md_handler.flush_to_clickhouse, args=(db_queue, orig_schema, tbl, test), daemon=True
     )
     db_thread.start()
 
@@ -80,10 +94,14 @@ def run_market_data_processor(client, md_handler, preprocessing_queue, db_queue,
 
     client.stop()
     preprocessing_queue.put("POISON_PILL")
+    if not isinstance(client_hb, bool):
+        client_hb.stop()
 
     ws_thread.join()
     ps_thread.join()
     db_thread.join()
+    if not isinstance(client_hb, bool):
+        ws_hb_thread.join()
 
     logging.info(f"Records processed: {md_handler.batches_processed}")
     logging.info(f"N inserts: {md_handler.n_inserts}")

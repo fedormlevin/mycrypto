@@ -14,20 +14,14 @@ class WebSocketClient:
         self.start_time = time.time()
         self.df_list = []
         self.first_message = True
+        self.recon_attempt = 0
+        self.count_id = 0
 
     def on_message(self, ws, message):
-
-        # if message:  # will fail if message is df
-        if isinstance(message, tuple):
-            if message[0]=='ERROR':
-                if message[1]['message']=='authentication failure':
-                    logging.error('Closing con')
-                    self.stop()
-                    self.queue.put('POISON_PILL')
-                    sys.exit(0)
-                return
-
+        
         self.queue.put(message)
+        logging.info(f'WS to processing {self.count_id}')
+        self.count_id+=1
         
         if self.first_message:
             logging.info('1st message is in processing queue')
@@ -39,6 +33,7 @@ class WebSocketClient:
             ws.close()
 
     def stop(self):
+        self.queue.put('POISON PILL')
         self.stop_event.set()
 
     def on_error(self, ws, error):
@@ -49,11 +44,16 @@ class WebSocketClient:
 
     def on_open(self, ws):
         ws.send(json.dumps(self.payload))
+        logging.info('Payload:')
+        logging.info(self.payload)
 
     def run(self):
         reconn_after = 20
         while not self.stop_event.is_set():
             try:
+                if self.recon_attempt>2:
+                    logging.info('No more reconn attempts')
+                    self.stop()
                 ws = websocket.WebSocketApp(
                     self.endpoint,
                     on_open=self.on_open,
@@ -68,6 +68,7 @@ class WebSocketClient:
                 break
             logging.info(f"Websocket conn lost. Reconn in {reconn_after} sec")
             time.sleep(10)
+            self.recon_attempt+=1
     
     # def run(self):
     #     reconn_after = 10  # Reconnection attempt after 10 seconds

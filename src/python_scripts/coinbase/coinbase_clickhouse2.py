@@ -33,9 +33,16 @@ def timestamp_and_sign(message, channel, products=[]):
 
 class CoinbaseWebsocketClientTopOfBook(WebSocketClient):
     def on_message(self, ws, message):
-        message_dict = parse_top_of_book_msg(message)
+        message_df = parse_top_of_book_msg(message)
+        if not isinstance(message_df, pd.DataFrame):
+            print(f'Message is {type(message_df)} after parse_top_of_book_msg')
+            if not isinstance(message_df, str):
+                
+                message_df_cp = pd.DataFrame()
+        else:
+            message_df_cp = message_df
 
-        return super().on_message(ws, message_dict)
+        return super().on_message(ws, message_df_cp)
 
 
 class CoinbaseWebsocketClientTrades(WebSocketClient):
@@ -47,6 +54,9 @@ class CoinbaseWebsocketClientTrades(WebSocketClient):
 class CoinbaseWebsocketClientHB(WebSocketClient):
 
     def on_message(self, ws, message):
+        if self.first_message:
+            logging.info(f'1st HB message: {message}')
+            self.first_message=False
             
         if self.stop_event.is_set():
             logging.info("WS Stop Event is set")
@@ -71,7 +81,11 @@ def get_top_of_book(df):
 
 def transform_to_db_view(old_df, new_df):
     history_data = []
+
+    
+    
     if new_df.empty:
+        
         return pd.DataFrame()
     elif new_df[new_df["side"] == "bid"].empty:
         new_bid = old_df[old_df["side"] == "bid"].iloc[0]
@@ -82,8 +96,11 @@ def transform_to_db_view(old_df, new_df):
         new_bid = new_df[new_df["side"] == "bid"].iloc[0]
 
     else:
+
         new_bid = new_df[new_df["side"] == "bid"].iloc[0]
         new_ask = new_df[new_df["side"] == "offer"].iloc[0]
+
+
 
     if old_df.empty:
         history_data.append(
@@ -169,28 +186,33 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
     def __init__(self):
         self.batches_processed = 0
         self.n_inserts = 0
-        # self.topofbook_state = pd.DataFrame()
-        # self.topofbook_prev_state = pd.DataFrame()
+        self.topofbook_state = pd.DataFrame()
+        self.topofbook_prev_state = pd.DataFrame()
         self.book_state = pd.DataFrame()
         self.book_state_prev = pd.DataFrame()
+        self.bad_spread_count = 0
+        self.count_id = 0
 
     def prepare_data(self, processing_queue, db_queue, batch_size):
         dict_list = []
 
         while True:
-            data = processing_queue.get()
+            data_ = processing_queue.get()
+            logging.info('Message received from WS')
+            
             processing_queue.task_done()
 
-            if isinstance(data, str) and data == "POISON_PILL":
+            if isinstance(data_, str) and data_ == "POISON_PILL":
                 logging.info("Stop flag in processing_queue")
                 if dict_list:
                     db_queue.put(dict_list)
                 db_queue.put("POISON_PILL")
+                logging.info(f'Bad spread events: {self.bad_spread_count}')
                 break
-
-            if isinstance(data, pd.DataFrame):
-                if not data.empty:
-                    data = aggregate_quantity_decimal(data, agg_level=1)
+            data = data_.copy()
+            
+            if not data.empty:
+                data = aggregate_quantity_decimal(data, agg_level=1)
 
             # if self.topofbook_state.empty:
             #     self.topofbook_state = get_top_of_book(data)
@@ -241,28 +263,35 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
 
                     else:
                         continue
-
+            
             self.topofbook_state = get_top_of_book(self.book_state)
             self.topofbook_prev_state = get_top_of_book(self.book_state_prev)
+            
 
-            self.book_state_prev = self.book_state
+            
 
             topofbook_transformed = transform_to_db_view(
                 self.topofbook_prev_state, self.topofbook_state
             )
-            print('topofbook')
-            print(topofbook_transformed)
+
             
             
             
             if topofbook_transformed['BidPx'].values[0]>=topofbook_transformed['OfferPx'].values[0]:
+                # logging.info('Bad spread, skipping update')
+                # self.book_state_prev.to_csv('book_state_prev.csv', index=False)
+                # self.book_state.to_csv('book_state.csv', index=False)
                 
-                logging.error("Bad spread")
-                if dict_list:
-                    db_queue.put(dict_list)
-                db_queue.put("POISON_PILL")
-                break
+                # self.bad_spread_count+=1
+                # self.book_state = self.book_state_prev
+                # continue
+          
+                self.book_state = topofbook_upd
+                self.topofbook_state = get_top_of_book(self.book_state)
+                topofbook_transformed = transform_to_db_view(self.topofbook_prev_state, self.topofbook_state)
+               
             
+            self.book_state_prev = self.book_state
             if not topofbook_transformed.empty:
                 topofbook_transformed = topofbook_transformed.to_dict(orient="records")
 
@@ -273,14 +302,17 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
                     by=self.topofbook_state.columns.tolist()
                 ).reset_index(drop=True)
                 are_identical = df1_sorted.equals(df2_sorted)
-
+                logging.info(f'Processing finished {self.count_id}')
+                
                 # making sure there was a change in top of book before putting to db queue
                 if topofbook_transformed and not are_identical:
+                    logging.info(f'Processing extended list {self.count_id}')
                     dict_list.extend(topofbook_transformed)
                     self.topofbook_prev_state = self.topofbook_state
-
+                self.count_id+=1
                 if len(dict_list) > batch_size:
                     db_queue.put(dict_list)
+                    logging.info('Message put to db queue')
 
                     dict_list = []
 
@@ -289,8 +321,8 @@ class MDProcessorCoinbaseTopOfBook(MDProcessor):
 
 
 def aggregate_quantity_decimal(df, agg_level=Decimal(1)):
-    bid = df[df["side"] == "bid"]["price_level"].max() - 100
-    offer = df[df["side"] == "offer"]["price_level"].min() + 100
+    bid = df[df["side"] == "bid"]["price_level"].max() - 50
+    offer = df[df["side"] == "offer"]["price_level"].min() + 50
     df = df[df["price_level"].between(bid, offer)]
 
     agg_lst = []
@@ -357,6 +389,7 @@ def aggregate_quantity_decimal(df, agg_level=Decimal(1)):
 
 # think how to reduce ammount of code for the 2 functions below
 def parse_top_of_book_msg(msg):
+    logging.info('Message received WS')
     message = json.loads(msg)
 
     if message.get("channel") == "l2_data":
@@ -462,17 +495,7 @@ def main():
         )
         md_handler = MDProcessorCoinbaseTopOfBook()
 
-    utils.run_market_data_processor(
-        client=client,
-        md_handler=md_handler,
-        preprocessing_queue=preprocessing_queue,
-        db_queue=db_queue,
-        batch_size=batch,
-        tbl=tbl,
-        orig_schema=orig_schema.keys(),
-        stop_after=args.stop_after,
-        test=args.test,
-    )
+    
     
     if args.heartbeats:
         message_hb = {
@@ -484,7 +507,21 @@ def main():
         payload_hb = timestamp_and_sign(message_hb, channel, product_ids_list)
         client_hb = CoinbaseWebsocketClientHB(queue=None, endpoint=endpoint, payload=payload_hb)
         
-        utils.run_heartbeats(client=client_hb, stop_after=args.stop_after)
+    else:
+        client_hb = False
+        
+    utils.run_market_data_processor(
+        client=client,
+        md_handler=md_handler,
+        preprocessing_queue=preprocessing_queue,
+        db_queue=db_queue,
+        batch_size=batch,
+        tbl=tbl,
+        orig_schema=orig_schema.keys(),
+        stop_after=args.stop_after,
+        test=args.test,
+        client_hb=client_hb
+    )
 
 
 if __name__ == "__main__":

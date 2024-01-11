@@ -1,59 +1,40 @@
 import json
 import websocket
-import pandas as pd
-from clickhouse_driver import Client
-from datetime import datetime
 import logging
 import time
-from functools import partial
-import signal
+import threading
 import sys
 
-
 class WebSocketClient:
-    # DF_LIST = []
-
-    def __init__(self, endpoint, payload, ch_table, ch_schema, batch_size, stop_after):
+    def __init__(self, queue, endpoint, payload):
+        self.queue = queue
         self.endpoint = endpoint
         self.payload = payload
-        self.ch_table = ch_table
-        self.ch_schema = ch_schema
-        self.batch_size = batch_size
-        self.stop_after = stop_after
+        self.stop_event = threading.Event()
         self.start_time = time.time()
-        self.first_batch_flushed = False
-        self.total_records_flushed = 0
-        self.DF_LIST = []
+        self.df_list = []
+        self.first_message = True
+        self.recon_attempt = 0
+        self.count_id = 0
 
     def on_message(self, ws, message):
-        current_time = time.time()
-        elapsed_time = current_time - self.start_time
         
-
-        if len(self.DF_LIST) >= self.batch_size or (len(self.DF_LIST) > 0 and elapsed_time >= self.stop_after - 10):
-            df = pd.concat(self.DF_LIST)
-            self.flush_to_ch(df, self.ch_table, self.ch_schema)
-
-    def flush_to_ch(self, df, ch_table, ch_schema):
-        client = Client("localhost", user='default', password='myuser')
-
-        df = df.apply(pd.to_numeric, errors="ignore")
-        df = df[ch_schema]
-
-        now_utc = datetime.utcnow()
-        df["date"] = now_utc.date()
-
-        epoch = datetime.utcfromtimestamp(0)
-        microseconds_since_epoch = (now_utc - epoch).total_seconds() * 1_000_000
-        df["insert_time"] = int(microseconds_since_epoch)
-
-        if not self.first_batch_flushed:
-            logging.info(f"Dumping batch of {len(self.DF_LIST)}")
-            self.first_batch_flushed = True
+        self.queue.put(message)
+        logging.info(f'WS to processing {self.count_id}')
+        self.count_id+=1
+        
+        if self.first_message:
+            logging.info('1st message is in processing queue')
             
-        client.execute(f"INSERT INTO mydb.{ch_table} VALUES", df.values.tolist())
-        self.total_records_flushed += len(self.DF_LIST)
-        self.DF_LIST = []
+            self.first_message = False
+            
+        if self.stop_event.is_set():
+            logging.info("WS Stop Event is set")
+            ws.close()
+
+    def stop(self):
+        self.queue.put('POISON PILL')
+        self.stop_event.set()
 
     def on_error(self, ws, error):
         logging.error(f"Error: {error}")
@@ -63,21 +44,28 @@ class WebSocketClient:
 
     def on_open(self, ws):
         ws.send(json.dumps(self.payload))
-
-    def stop_script(self, signum, frame):
-        logging.info(f'Done. Total Number of records in batches: {self.total_records_flushed}')
-        sys.exit(0)
+        logging.info('Payload:')
+        logging.info(self.payload)
 
     def run(self):
-        signal.signal(signal.SIGALRM, self.stop_script)
-        logging.info(f"Scheduled stop the script after {self.stop_after} sec")
-        signal.alarm(self.stop_after)
-        
-        ws = websocket.WebSocketApp(
-            self.endpoint,
-            on_open=self.on_open,
-            on_message=self.on_message,
-            on_error=self.on_error,
-            on_close=self.on_close,
-        )
-        ws.run_forever()
+        reconn_after = 20
+        while not self.stop_event.is_set():
+            try:
+                if self.recon_attempt>2:
+                    logging.info('No more reconn attempts')
+                    self.stop()
+                ws = websocket.WebSocketApp(
+                    self.endpoint,
+                    on_open=self.on_open,
+                    on_message=self.on_message,
+                    on_error=self.on_error,
+                    on_close=self.on_close,
+                )
+                ws.run_forever()
+            except Exception as e:
+                logging.error(f"Websocket error: {e}")
+            if self.stop_event.is_set():
+                break
+            logging.info(f"Websocket conn lost. Reconn in {reconn_after} sec")
+            time.sleep(10)
+            self.recon_attempt+=1
